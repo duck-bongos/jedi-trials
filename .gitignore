@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Visual Studio Code
+*.vscode
+
+# ICP ignores
+ICP/build/*
+
+
+
+*.DS_Store
