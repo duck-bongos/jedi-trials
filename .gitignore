@@ -33,6 +33,7 @@
 
 # Visual Studio Code
 *.vscode
+*.vs
 
 # ICP ignores
 ICP/build/*
