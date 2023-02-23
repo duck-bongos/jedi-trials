@@ -1,10 +1,9 @@
 #ifndef TYPEDEFS_H
 #define TYPEDEFS_H
 
-#define NOMINMAX
-#include <Windows.h>
-#undef NOMINMAX
-
+// #define NOMINMAX
+// #include <Windows.h>
+// #undef NOMINMAX
 
 #include <limits>
 #include <fstream>
@@ -15,7 +14,7 @@
 #include <Eigen/Core>
 #include <sys/stat.h>
 #include <ctime>
-#include <dirent.h> 
+#include <dirent.h>
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
@@ -59,11 +58,9 @@
 #include <pcl/registration/transformation_estimation_lm.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 
-
-
 /** global variable definition**/
-extern std::string g_DATASET_DIR;	// Dataset directory
-extern std::string g_RESULT_DIR;	// Result directory
+extern std::string g_DATASET_DIR; // Dataset directory
+extern std::string g_RESULT_DIR;  // Result directory
 
 // Normal Estimation Parameters
 extern float g_NORMAL_SEARCH_RADIUS;
@@ -103,7 +100,6 @@ extern float g_APPROX_NEAREST_SEARCH_PARA;
 
 extern bool g_SAVE_APPROX_DATA;
 
-
 typedef pcl::PointXYZ PointT;
 typedef pcl::PointCloud<PointT> PointCloud;
 typedef pcl::PointCloud<PointT>::Ptr PointCloudPtr;
@@ -118,7 +114,6 @@ typedef pcl::PointXYZRGB PointRGB;
 typedef pcl::PointCloud<PointRGB> PointCloudRGB;
 typedef pcl::PointCloud<PointRGB>::Ptr PointCloudRGBPtr;
 typedef pcl::PointCloud<PointRGB>::ConstPtr PointCloudRGBConstPtr;
-
 
 typedef pcl::PointNormal PointNormal;
 typedef pcl::PointCloud<PointNormal> PointCloudNormal;
@@ -139,24 +134,22 @@ typedef pcl::PointXYZRGB PointRGB;
 typedef pcl::PointCloud<PointRGB> PointCloudRGB;
 typedef pcl::PointCloud<PointRGB>::Ptr PointCloudRGBPtr;
 
-
-
 // A struct for storing alignment results
 struct Result
 {
-  float fitness_score;
-  Eigen::Matrix4f final_transformation;
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+	float fitness_score;
+	Eigen::Matrix4f final_transformation;
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 // SIFT
 namespace pcl
 {
-	template<>
+	template <>
 	struct SIFTKeypointFieldSelector<PointXYZ>
 	{
 		inline float
-		operator () (const PointXYZ & p) const
+		operator()(const PointXYZ &p) const
 		{
 			return p.z;
 		}
@@ -168,128 +161,127 @@ namespace pcl
 *************************************/
 class FeatureCloud
 {
-  public:
-	FeatureCloud () {}
+public:
+	FeatureCloud() {}
 
-	~FeatureCloud () {}
+	~FeatureCloud() {}
 
 	// Sets the pointer to the point cloud.
-	void setInputCloud (PointCloud::Ptr xyz)
+	void setInputCloud(PointCloud::Ptr xyz)
 	{
-	  xyz_ = xyz;
-	  //xyz_dist = xyz;
+		xyz_ = xyz;
+		// xyz_dist = xyz;
 	}
 
 	// Loads Point Cloud from a PCD file.
-	void loadInputCloud (const std::string &pcd_file)
+	void loadInputCloud(const std::string &pcd_file)
 	{
-	  xyz_ = PointCloud::Ptr (new PointCloud);
-	  pcl::io::loadPCDFile (pcd_file, *xyz_);
+		xyz_ = PointCloud::Ptr(new PointCloud);
+		pcl::io::loadPCDFile(pcd_file, *xyz_);
 	}
 
 	// Returns the pointer to the cloud (PointCloud Type).
-	PointCloud::Ptr getPointCloud () const
+	PointCloud::Ptr getPointCloud() const
 	{
-	  return (xyz_);
+		return (xyz_);
 	}
 
-	
 	PointCloud::Ptr getPointCloud_dist() const
 	{
 		return (xyz_dist);
 	}
-	
 
 	// Sets key point cloud (PointCloud Type).
-	void setKeyPoints (PointCloud::Ptr xyz_key)
+	void setKeyPoints(PointCloud::Ptr xyz_key)
 	{
-	  xyz_key_ = xyz_key;
+		xyz_key_ = xyz_key;
 	}
 
 	// Returns the pointer to the key point cloud (PointCloud Type).
-	PointCloud::Ptr getKeyPoints () const
+	PointCloud::Ptr getKeyPoints() const
 	{
-	  return (xyz_key_);
+		return (xyz_key_);
 	}
 
 	// Sets the pointer to the PointCloudNormal Type.
-	void setPointCloudNormal (PointCloudNormal::Ptr xyzn)
+	void setPointCloudNormal(PointCloudNormal::Ptr xyzn)
 	{
-	  xyzn_ = xyzn;
+		xyzn_ = xyzn;
 	}
 
 	// Returns the pointer to the PointCloudNormal Type
-	PointCloudNormal::Ptr getPointCloudNormal () const
+	PointCloudNormal::Ptr getPointCloudNormal() const
 	{
-	  return (xyzn_);
+		return (xyzn_);
 	}
 
 	// Sets the pointer to the key-point cloud (PointCloud Type).
-	void setKeyPoint_indices (pcl::PointIndices::Ptr key_indices)
+	void setKeyPoint_indices(pcl::PointIndices::Ptr key_indices)
 	{
-	  key_indices_ = key_indices;
+		key_indices_ = key_indices;
 	}
 
 	// Returns the pointer to the key-point cloud (PointCloud Type).
-	pcl::PointIndices::Ptr getKeyPoint_indices () const
+	pcl::PointIndices::Ptr getKeyPoint_indices() const
 	{
-	  return (key_indices_);
+		return (key_indices_);
 	}
 
 	// Sets the pointer to the point cloud transformed by the initial
 	// tranformation matrix (PointCloud Type).
-	void setTransformedCloud (PointCloud::Ptr xyz_transformed)
+	void setTransformedCloud(PointCloud::Ptr xyz_transformed)
 	{
-	  xyz_transformed_ = xyz_transformed;
+		xyz_transformed_ = xyz_transformed;
 	}
 
 	// Returns the pointer to the point cloud transformed by the initial
 	// tranformation matrix (PointCloud Type).
-	PointCloud::Ptr getTransformedCloud () const
+	PointCloud::Ptr getTransformedCloud() const
 	{
-	  return (xyz_transformed_);
+		return (xyz_transformed_);
 	}
 
 	// Sets pointer to Normals.
-	void setSurfaceNormals (SurfaceNormals::Ptr normals) 
+	void setSurfaceNormals(SurfaceNormals::Ptr normals)
 	{
-	  normals_ = normals;
+		normals_ = normals;
 	}
 	// Gets the pointer to the cloud of 3D surface normals.
-	SurfaceNormals::Ptr getSurfaceNormals () const
+	SurfaceNormals::Ptr getSurfaceNormals() const
 	{
-	  return (normals_);
+		return (normals_);
 	}
 
 	// Sets a pointer to the feature descriptor data (FPFH type).
-	void setFeatures_FPFH (FPFH_Features::Ptr fpfh_features)
+	void setFeatures_FPFH(FPFH_Features::Ptr fpfh_features)
 	{
-	  fpfh_features_ = fpfh_features;
+		fpfh_features_ = fpfh_features;
 	}
 
 	// Sets a pointer to the feature descriptor data (SHOT type).
-	void setFeatures_SHOT (SHOT_Features::Ptr shot_features)
+	void setFeatures_SHOT(SHOT_Features::Ptr shot_features)
 	{
-	   shot_features_ = shot_features;
+		shot_features_ = shot_features;
 	}
 
 	// Gets the pointer to the feature descriptor data (FPFH type).
-	FPFH_Features::Ptr getFeatures_FPFH () const
+	FPFH_Features::Ptr getFeatures_FPFH() const
 	{
-	  return (fpfh_features_);
+		return (fpfh_features_);
 	}
 
 	// Gets a pointer to the feature descriptor data (SHOT type).
-	SHOT_Features::Ptr getFeatures_SHOT () const
+	SHOT_Features::Ptr getFeatures_SHOT() const
 	{
-	  return (shot_features_);
+		return (shot_features_);
 	}
 
-	std::vector <float> get_distance() {
+	std::vector<float> get_distance()
+	{
 		return (distance_);
 	}
 
-  private:
+private:
 	// Pointer to the Original Point Cloud
 	PointCloud::Ptr xyz_;
 
@@ -311,7 +303,7 @@ class FeatureCloud
 	// PCL data structure: Key points with Normal
 	PointCloudNormal::Ptr xyzn_key_;
 
-	std::vector <float> distance_;
+	std::vector<float> distance_;
 
 	/* Features */
 
@@ -319,7 +311,7 @@ class FeatureCloud
 	SurfaceNormals::Ptr normals_;
 
 	// Feature Descriptor: FPFH
-	FPFH_Features::Ptr fpfh_features_ ;
+	FPFH_Features::Ptr fpfh_features_;
 
 	// Feature Descriptor: SHOT
 	SHOT_Features::Ptr shot_features_;
