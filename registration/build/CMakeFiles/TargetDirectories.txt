@@ -1,3 +1,0 @@
-/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/registration/build/CMakeFiles/pcd_write.dir
-/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/registration/build/CMakeFiles/edit_cache.dir
-/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/registration/build/CMakeFiles/rebuild_cache.dir
