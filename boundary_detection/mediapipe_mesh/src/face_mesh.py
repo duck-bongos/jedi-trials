@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import cv2
 import matplotlib.pyplot as plt
@@ -19,6 +19,30 @@ BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=1, circle_ra
 MASK_COLOR = [255, 255, 255]
 
 
+def build_mask_from_boundary(
+    img: np.ndarray, boundary: Union[Polygon, List[np.ndarray], np.ndarray]
+) -> np.ndarray:
+    """Returns black and whilte to represent the face outline."""
+    overlay = img.copy()
+
+    if isinstance(boundary, Polygon):
+        int_coords = lambda x: np.array(x).round().astype(np.int32)
+        boundary = [int_coords(boundary.exterior.coords)]
+
+    elif isinstance(boundary, np.ndarray):
+        boundary = [boundary]
+
+    mask = cv2.fillPoly(overlay, boundary, color=MASK_COLOR)
+
+    # white mask
+    idx = get_color_indices_from_img(mask, MASK_COLOR)
+
+    z = np.zeros(img.shape)
+    z[idx] = MASK_COLOR[0]
+
+    return z
+
+
 def compute_boundary_edges(boundary) -> List[Tuple[int, int]]:
     nl = []
     nl.append((boundary[len(boundary) - 1], boundary[0]))
@@ -29,6 +53,10 @@ def compute_boundary_edges(boundary) -> List[Tuple[int, int]]:
 
 
 def compute_face_mesh(img: np.ndarray):
+    """Compute the face mesh using mediapipe.
+
+    We need to use the variable "mark" and the landmarks list isn't indexable or iterable
+    so we just return it immediately."""
     with mp_face_mesh.FaceMesh(
         static_image_mode=True,
         max_num_faces=1,
@@ -41,39 +69,9 @@ def compute_face_mesh(img: np.ndarray):
             return -1
 
         # multi_face_landmarks is a non-iterable, non-indexible list of 1 item
-        mesh: np.ndarray
+
         for mark in results.multi_face_landmarks:
-            mesh = np.array([(m.x, m.y, m.z) for m in mark.landmark])
-        return mesh, mark
-
-
-def convert_mesh_to_idx(img: np.ndarray, mesh: np.ndarray) -> np.ndarray:
-    """Convert the mediapipe output mesh to indices on the image.
-
-    Mediapipe outputs an orthonormal mesh (range [-1, 1] in x, y, z directions) which is useful
-    computationally but needs to be converted back to point indices for filtering purposes.
-    TODO: (how) Do I make this generic across all boundary constraint methods?
-
-    Args:
-        img (np.ndarray): The input image.
-        mesh (np.ndarray): The MediaPipe calculated orthonormal mesh.
-
-    Returns:
-        np.ndarray: An array with the index coordinates for each orthonormal point.
-
-    """
-    img = img.copy()
-
-    # grab the origin point
-    y_null = img.shape[0] // 2
-    x_null = img.shape[1] // 2
-
-    new_mesh = np.zeros(mesh.shape)
-
-    new_mesh[:, 0] = np.round((mesh[:, 0] * y_null + y_null) / mesh[:, 2])
-    new_mesh[:, 1] = np.round((mesh[:, 1] * x_null + x_null) / mesh[:, 2])
-
-    return new_mesh
+            return mark
 
 
 def get_boundary_idx():
@@ -84,50 +82,7 @@ def get_boundary_idx():
     return boundary
 
 
-def draw_polygon(
-    img: np.ndarray,
-    landmarks: np.ndarray,
-):
-    # convert the landmark list to the
-    img = img.copy()
-
-    """    origin = (img.shape[1] // 2, img.shape[0] // 2)
-    # tp1 = (1525, 1225)
-    # tp2 = (1225, 1525)
-    # tp3 = (289, 973)
-    tp4 = (973, 289)
-    # "origin"
-    cv2.circle(img, center=origin, radius=10, color=(255, 255, 0))
-    cv2.circle(img, center=(0, 0), radius=15, color=(255, 255, 0))
-    cv2.circle(img, center=(img.shape[1], img.shape[0]), radius=15, color=(0, 255, 255))
-    cv2.circle(img, center=tp4, radius=5, color=(255, 255, 255))"""
-    # cv2.circle(img, center=tp4, radius=5, color=(0, 255, 255))
-
-    """for x, y in marks:
-        # img[x, y] = (255, 0, 0)
-
-        cv2.circle(img, radius=5, center=(x, y), color=(255, 255, 0))
-        cv2.circle(img, radius=5, center=(y, x), color=(255, 255, 255))"""
-    landmarks[:, [0, 1]] = landmarks[:, [1, 0]]
-    polygon = Polygon(landmarks)
-
-    int_coords = lambda x: np.array(x).round().astype(np.int32)
-    exterior = [int_coords(polygon.exterior.coords)]
-
-    alpha = 0.1
-    overlay = img.copy()
-    cv2.fillPoly(overlay, exterior, color=(255, 255, 255))
-    mask = get_color_indices_from_img(overlay, [255, 255, 255])
-    cv2.fillPoly(overlay, exterior, color=(0, 255, 255))
-
-    # cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
-    cv2.imshow("Polygon", overlay)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    return
-
-
-def draw_mesh_and_boundary(
+def compute_mesh_and_boundary(
     img: np.ndarray,
     landmarks: np.ndarray,
     fpath: str,
@@ -135,6 +90,7 @@ def draw_mesh_and_boundary(
     connections=None,
     boundary_spec=None,
 ) -> None:
+    """Writes out mesh and boundary to file."""
     annotated_image = img.copy()
     connections = (
         mp_face_mesh.FACEMESH_TESSELATION if connections is None else connections
@@ -194,7 +150,7 @@ def get_boundary_from_annotation(
 def get_color_indices_from_img(
     img: np.ndarray, color: Tuple[int, int, int], two_d_only: bool = False
 ):
-    """Return the indices that match the color
+    """Return the indices that match the color.
 
     ex:
         >>> boundary_spec
@@ -228,17 +184,35 @@ def get_annotated_fpath(strpath: str, prefix="") -> str:
 
     fpath = fname.parent.parent
     new_path = fpath / "annotated" / dir / name
-    new_path = new_path.with_suffix(".png")
+    if prefix != "mask":
+        new_path = new_path.with_suffix(".png")
+
     return new_path.as_posix()
 
 
-def make_normalized_landmark_list(mesh) -> NormalizedLandmarkList:
-    l = []
-    nll = NormalizedLandmarkList()
-    l = [NormalizedLandmark(x=m[0], y=m[1], z=m[2]) for m in mesh]
+def show_polygon_overlay(
+    img: np.ndarray,
+    landmarks: np.ndarray,
+):
+    """Draws a polygon on an image. For display purposes only."""
+    # convert the landmark list to the
+    img = img.copy()
 
-    nll.landmark._values = l
-    return nll
+    # TODO: candidate for refactor
+    landmarks[:, [0, 1]] = landmarks[:, [1, 0]]
+    polygon = Polygon(landmarks)
+    int_coords = lambda x: np.array(x).round().astype(np.int32)
+    exterior = [int_coords(polygon.exterior.coords)]
+
+    alpha = 0.1
+    overlay = img.copy()
+    cv2.fillPoly(overlay, exterior, color=(0, 255, 255))
+
+    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+    cv2.imshow("Polygon", overlay)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return
 
 
 def write_mesh_points(mesh: np.ndarray, fname=""):
@@ -249,46 +223,49 @@ def write_mesh_points(mesh: np.ndarray, fname=""):
     return
 
 
-def run_face_mesh_pipeline(fpath: str, compute=True, annotate=True) -> Tuple[int, int]:
-    # Convert the BGR image to RGB before processing.
+def write_out_mask(fpath: str, mask: np.ndarray) -> None:
+    """Save as a numpy file and cv2.imwrite to a png"""
+
+    fpath_mask = get_annotated_fpath(fpath, "mask")
+    np.save(fpath_mask, mask)
+
+    # TODO: https://github.com/duck-bongos/jedi-trials/issues/1
+    cv2.imwrite(fpath_mask.replace("mask", "mask_image") + ".png", mask)
+
+
+def run_face_mesh_pipeline(fpath: str, compute=True, display=True) -> Tuple[int, int]:
+    # Convert the BGR image to RGB before processing?
     img = cv2.imread(fpath)
     img = img.copy()
 
     if compute:
-        ortho_mesh_landmarks, landmarks = compute_face_mesh(img)
+        landmarks = compute_face_mesh(img)
         # mesh_2d = mesh.copy()  # <-- I have to think about this still
         # mesh_2d[:, 2] = 0  # <-- I have to think about this still
+
+        # read from static list
         boundary_idx: List[int] = get_boundary_idx()
         boundary_contour: List[Tuple[int]] = compute_boundary_edges(
             boundary=boundary_idx
         )
 
-        # convert the orthonormal points back to usable coordinates
-        # need to run on the LANDMARKS, which is "mesh"
-        idx_mesh_landmarks = convert_mesh_to_idx(img, ortho_mesh_landmarks)
-        # draw_polygon(            img,            landmarks=idx_mesh_landmarks,            boundary_idx=boundary_idx,        )
+        annotated_img, color = compute_mesh_and_boundary(
+            img,
+            landmarks,
+            fpath,
+            prefix="boundary",
+            connections=boundary_contour,
+            boundary_spec=BOUNDARY_SPEC,
+        )
 
-        write_mesh_points(ortho_mesh_landmarks)
-        write_mesh_points(ortho_mesh_landmarks[boundary_idx], "boundary.obj")
-        # boundary_landmarks = make_normalized_landmark_list(boundary_idx)
+        boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
 
-        if annotate:
-            # draw_mesh(img, landmarks, fpath, prefix="mesh")
-            # draw_mesh(img, mesh_2d)  # <-- I have to think about this still
+        mask = build_mask_from_boundary(annotated_img, boundary)
 
-            annotated_img, color = draw_mesh_and_boundary(
-                img,
-                landmarks,
-                fpath,
-                prefix="boundary",
-                connections=boundary_contour,
-                boundary_spec=BOUNDARY_SPEC,
-            )
+        # TODO: Fix this
+        write_out_mask(fpath=fpath, mask=mask)
 
-            boundary = get_boundary_from_annotation(
-                annotated_img, color, two_d_only=True
-            )
+        if display:
+            show_polygon_overlay(img=img, landmarks=boundary)
 
-            draw_polygon(img=img, landmarks=boundary)
-
-    return ortho_mesh_landmarks, boundary_idx
+    return
