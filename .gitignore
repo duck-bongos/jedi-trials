@@ -30,6 +30,7 @@
 *.exe
 *.out
 *.app
+*__pycache__*
 
 # Visual Studio (Code)
 *.vscode
