@@ -234,7 +234,6 @@ def write_mesh_points(mesh: np.ndarray, fpath=""):
     ```
 
     """
-
     with open(fpath, "w+") as tt:
         for i in range(mesh.shape[0]):
             tt.write(f"v {mesh[i][0]} {mesh[i][1]} {mesh[i][2]}\n")
@@ -278,13 +277,15 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
 
         boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
 
+        # write out mask
         mask = build_mask_from_boundary(annotated_img, boundary)
         write_out_image(fpath=fpath, mask=mask)
 
+        # write out masked image
         masked_img = (mask * img) / mask.max()
         write_out_image(fpath=fpath, mask=masked_img)
 
-        # write-out location
+        # write out mesh
         fpath_name = Path(fpath)
         name = (
             fpath_name.parent.parent
