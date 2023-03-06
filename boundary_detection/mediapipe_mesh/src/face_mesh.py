@@ -279,11 +279,11 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
 
         # write out mask
         mask = build_mask_from_boundary(annotated_img, boundary)
-        write_out_image(fpath=fpath, mask=mask)
+        # write_out_image(fpath=fpath, mask=mask)  #TODO: not cross-platform compatible
 
         # write out masked image
         masked_img = (mask * img) / mask.max()
-        write_out_image(fpath=fpath, mask=masked_img)
+        # write_out_image(fpath=fpath, mask=masked_img)  #TODO: not cross-platform compatible
 
         # write out mesh
         fpath_name = Path(fpath)
@@ -294,6 +294,32 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
             / f"masked_{fpath_name.stem}.obj"
         )
         write_mesh_points(masked_img, name)
+
+
+        ### !!!! UNDER CONSTRUCTION !!!! ####
+        two_d = np.loadtxt("C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt")
+        two_d[:,0] *= img.shape[1]
+        two_d[:,1] *= img.shape[0]
+        two_d = np.round(two_d, 0).astype(int)
+
+        things = []
+        for idx, (row, col) in enumerate(two_d):
+            if all(mask[row, col] == MASK_COLOR):
+                things.append(idx)
+
+        idxs = np.array(things)
+        three_d = np.loadtxt("C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt")
+
+        
+        with open("C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\annotated\\source\\selected.obj", 'w') as s:
+            # write vertices first
+            for line in three_d[idxs]:
+                s.write(f"v {line}\n")
+            
+            # write texture second
+            for lin in two_d[idxs]:
+                s.write(f"vs {lin}\n")
+        #####################################
 
         if display:
             show_polygon_overlay(img=img, landmarks=boundary)
