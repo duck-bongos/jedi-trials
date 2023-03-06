@@ -11,7 +11,7 @@ if __name__ == "__main__":
     tp = Path(args.target_img).resolve().as_posix()
 
     # this will compute and annotate
-    run_face_mesh_pipeline(sp, display=True)
+    run_face_mesh_pipeline(sp, display=False)
     run_face_mesh_pipeline(tp, display=False)
 
     # TODO: What are we trying to RETURN to the program for the next step?

@@ -38,7 +38,7 @@ def build_mask_from_boundary(
     idx = get_color_indices_from_img(mask, MASK_COLOR)
 
     z = np.zeros(img.shape)
-    z[idx] = MASK_COLOR[0]
+    z[idx[:, 0], idx[:, 1]] = MASK_COLOR
 
     return z
 
@@ -69,9 +69,12 @@ def compute_face_mesh(img: np.ndarray):
             return -1
 
         # multi_face_landmarks is a non-iterable, non-indexible list of 1 item
-
         for mark in results.multi_face_landmarks:
             return mark
+
+
+def create_polygon_from_landmarks(landmarks: List[float]) -> Polygon:
+    return Polygon([Point(point.x, point.y) for point in landmarks])
 
 
 def get_boundary_idx():
@@ -144,6 +147,9 @@ def get_boundary_from_annotation(
         # deduplicate
         boundary = np.unique(boundary, axis=0)
 
+    # try a reversal
+    boundary[:, [0, 1]] = boundary[:, [1, 0]]
+
     return boundary
 
 
@@ -215,15 +221,27 @@ def show_polygon_overlay(
     return
 
 
-def write_mesh_points(mesh: np.ndarray, fname=""):
-    fname = "face_mesh.obj" if fname == "" else fname
-    with open(f"../../{fname}", "w+") as tt:
+def write_mesh_points(mesh: np.ndarray, fpath=""):
+    """Follows the standard defined at Wikipedia.
+
+    ```
+    >>> https://en.wikipedia.org/wiki/Wavefront_.obj_file
+
+    #
+        List of geometric vertices, with (x, y, z, [w]) coordinates, w is optional and defaults to 1.0.
+        v 0.123 0.234 0.345 1.0
+        v ...
+    ```
+
+    """
+
+    with open(fpath, "w+") as tt:
         for i in range(mesh.shape[0]):
             tt.write(f"v {mesh[i][0]} {mesh[i][1]} {mesh[i][2]}\n")
     return
 
 
-def write_out_mask(fpath: str, mask: np.ndarray) -> None:
+def write_out_image(fpath: str, mask: np.ndarray) -> None:
     """Save as a numpy file and cv2.imwrite to a png"""
 
     fpath_mask = get_annotated_fpath(fpath, "mask")
@@ -233,7 +251,7 @@ def write_out_mask(fpath: str, mask: np.ndarray) -> None:
     cv2.imwrite(fpath_mask.replace("mask", "mask_image") + ".png", mask)
 
 
-def run_face_mesh_pipeline(fpath: str, compute=True, display=True) -> Tuple[int, int]:
+def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int, int]:
     # Convert the BGR image to RGB before processing?
     img = cv2.imread(fpath)
     img = img.copy()
@@ -261,9 +279,20 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=True) -> Tuple[int,
         boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
 
         mask = build_mask_from_boundary(annotated_img, boundary)
+        write_out_image(fpath=fpath, mask=mask)
 
-        # TODO: Fix this
-        write_out_mask(fpath=fpath, mask=mask)
+        masked_img = (mask * img) / mask.max()
+        write_out_image(fpath=fpath, mask=masked_img)
+
+        # write-out location
+        fpath_name = Path(fpath)
+        name = (
+            fpath_name.parent.parent
+            / "annotated"
+            / fpath_name.stem
+            / f"masked_{fpath_name.stem}.obj"
+        )
+        write_mesh_points(masked_img, name)
 
         if display:
             show_polygon_overlay(img=img, landmarks=boundary)

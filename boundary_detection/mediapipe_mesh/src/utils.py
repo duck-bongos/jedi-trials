@@ -23,3 +23,7 @@ def parse_cli() -> ArgumentParser:
     args = Box(args.__dict__)
 
     return args
+
+
+def pull_2d_points() -> None:
+    return
