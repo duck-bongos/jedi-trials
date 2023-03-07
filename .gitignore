@@ -6,6 +6,8 @@
 *.lo
 *.o
 *.obj
+*texture.txt 
+*voxels.txt
 
 # Precompiled Headers
 *.gch
@@ -40,4 +42,7 @@
 # ICP ignores
 ICP/build/*
 
-data/tmp/*
+
+# hide pediatric data
+!data/*mask*.png
+
