@@ -14,7 +14,7 @@ def get_annotated_fpath(strpath: str, **kwargs) -> str:
     fname = Path(strpath)
     dir = fname.stem
     name = fname.stem if prefix == "" else prefix + "_" + fname.stem
-    name = fname.stem if suffix == "" else fname.stem + "_" + suffix
+    name = name if suffix == "" else name + "_" + suffix
 
     fpath = fname.parent.parent
     new_path = fpath / "annotated" / dir / name

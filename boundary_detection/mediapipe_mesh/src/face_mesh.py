@@ -101,7 +101,7 @@ def compute_mesh_and_boundary(
         connection_drawing_spec=boundary_spec,
     )
 
-    if not write_image(fpath, annotated_image):
+    if not write_image(fpath, annotated_image, **{"prefix": "boundary"}):
         print("NO image written.")
 
     return annotated_image, boundary_spec.color
@@ -238,7 +238,10 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
 
         # write out mask
         mask = build_mask_from_boundary(annotated_img, boundary)
-        write_matrix(fpath=fpath, matrix=mask)  # TODO: not cross-platform compatible
+        write_matrix(
+            fpath=fpath, matrix=mask, **{"prefix": "masked"}
+        )  # TODO: not cross-platform compatible
+        write_image(fpath, mask, **{"prefix": "masked", "suffix": "matrix_img"})
 
         # write out masked image
         masked_img = (mask * img) / mask.max()
@@ -258,25 +261,35 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
         two_d = np.loadtxt(
             "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt"
         )
-        two_d[:, 0] *= img.shape[0]
-        two_d[:, 1] *= img.shape[1]
-        two_d = np.round(two_d, 0).astype(int)
+        texture = two_d.copy()
+        texture[:, 0] *= img.shape[1]
+        texture[:, 1] *= img.shape[0]
+        texture = np.round(texture, 0).astype(int)
 
         # !!! TODO: https://github.com/duck-bongos/jedi-trials/issues/3
         two_test = np.zeros(img.shape)
-        for row, col in two_d:
-            two_test[row, col] = MASK_COLOR
+        for row, col in texture:
+            two_test[col, row] = MASK_COLOR
 
         write_image(
             "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt",
             two_test,
-            kwargs={"prefix": "object_mask", "extension": "png"},
+            **{"prefix": "object_mask", "extension": "png"},
+        )
+
+        # now merge with the mask
+        constrained_face = (two_test * mask) // 255
+        write_image(
+            "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt",
+            constrained_face,
+            **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
         )
         # !!!
 
         things = []
-        for idx, (row, col) in enumerate(two_d):
-            if all(mask[row, col] == MASK_COLOR):
+        for idx, (row, col) in enumerate(texture):
+            # switch column and row
+            if all(constrained_face[col, row] == MASK_COLOR):
                 things.append(idx)
 
         idxs = np.array(things)
@@ -284,11 +297,12 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
             "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt"
         )
 
+        # TODO remove 301-305?
         # re-normalize the 2D points
-        two_d = two_d.astype(float)
-        two_d[:, 0] /= img.shape[0]
-        two_d[:, 1] /= img.shape[1]
-        two_d = np.round(two_d, 7)  # the input file was rounded to 2 decimals
+        # two_d = two_d.astype(float)
+        # two_d[:, 0] /= img.shape[0]
+        # two_d[:, 1] /= img.shape[1]
+        # two_d = np.round(two_d, 7)  # the input file was rounded to 2 decimals
 
         write_object(fpath, idxs, texture=two_d, vertices=three_d)
         #####################################
