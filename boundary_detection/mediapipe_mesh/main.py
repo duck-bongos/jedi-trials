@@ -1,3 +1,10 @@
+"""
+    Author: Dan Billmann
+
+    We are writing out .obj files with the masked vertices returned.
+    These will be consumed downstream.
+    
+"""
 from pathlib import Path
 
 from src.face_mesh import run_face_mesh_pipeline
@@ -13,9 +20,3 @@ if __name__ == "__main__":
     # this will compute and annotate
     run_face_mesh_pipeline(sp, display=False)
     run_face_mesh_pipeline(tp, display=False)
-
-    # TODO: What are we trying to RETURN to the program for the next step?
-
-    # 1. Quaternion matrix?
-    # 2. Data files to be passed to ICP?
-    # 3. ???
