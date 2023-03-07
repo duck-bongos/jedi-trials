@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -6,10 +8,13 @@ import matplotlib.pyplot as plt
 import mediapipe as mp
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+from numba import njit, vectorize
 import numpy as np
+from pywavefront import Wavefront
 from shapely import Point, Polygon
 
 from .utils import get_annotated_fpath, write_image, write_matrix, write_object
+
 
 # mediapipe utils
 mp_drawing = mp.solutions.drawing_utils
@@ -32,6 +37,8 @@ def build_mask_from_boundary(
         boundary = [int_coords(boundary.exterior.coords)]
 
     elif isinstance(boundary, np.ndarray):
+        #TODO: we might need to account for cv2's conventions here
+        # # boundary[:, [0,1]] = boundary[:, [1,0]]
         boundary = [boundary]
 
     mask = cv2.fillPoly(overlay, boundary, color=MASK_COLOR)
@@ -143,6 +150,7 @@ def get_boundary_from_annotation(
     # try a reversal
     boundary[:, [0, 1]] = boundary[:, [1, 0]]
 
+    # maybe this will help?
     return boundary
 
 
@@ -193,7 +201,7 @@ def show_polygon_overlay(
     img = img.copy()
 
     # TODO: candidate for refactor
-    landmarks[:, [0, 1]] = landmarks[:, [1, 0]]
+    # landmarks[:, [0, 1]] = landmarks[:, [1, 0]]  # correct for CV2 interpretation
     polygon = Polygon(landmarks)
     int_coords = lambda x: np.array(x).round().astype(np.int32)
     exterior = [int_coords(polygon.exterior.coords)]
@@ -215,16 +223,18 @@ def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int
     img = img.copy()
 
     if compute:
+        # These landmarks are ORTHONORMAL
         landmarks = compute_face_mesh(img)
-        # mesh_2d = mesh.copy()  # <-- I have to think about this still
-        # mesh_2d[:, 2] = 0  # <-- I have to think about this still
 
         # read from static list
         boundary_idx: List[int] = get_boundary_idx()
+
+        # Create a contour
         boundary_contour: List[Tuple[int]] = compute_boundary_edges(
             boundary=boundary_idx
         )
 
+        # Get an annotated image and the boundary color
         annotated_img, color = compute_mesh_and_boundary(
             img,
             landmarks,
