@@ -39,3 +39,5 @@
 
 # ICP ignores
 ICP/build/*
+
+data/tmp/*
