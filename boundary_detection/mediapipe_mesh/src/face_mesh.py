@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -5,8 +7,10 @@ import cv2
 import mediapipe as mp
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+from numba import njit, vectorize
 import numpy as np
-from shapely import Polygon
+from pywavefront import Wavefront
+from shapely import Point, Polygon
 
 from .utils import write_image, write_matrix, write_object
 
@@ -31,6 +35,8 @@ def build_mask_from_boundary(
         boundary = [int_coords(boundary.exterior.coords)]
 
     elif isinstance(boundary, np.ndarray):
+        # TODO: we might need to account for cv2's conventions here
+        # # boundary[:, [0,1]] = boundary[:, [1,0]]
         boundary = [boundary]
 
     mask = cv2.fillPoly(overlay, boundary, color=MASK_COLOR)
@@ -137,6 +143,7 @@ def get_boundary_from_annotation(
     # try a reversal
     boundary[:, [0, 1]] = boundary[:, [1, 0]]
 
+    # maybe this will help?
     return boundary
 
 
@@ -187,7 +194,7 @@ def show_polygon_overlay(
     img = img.copy()
 
     # TODO: candidate for refactor
-    landmarks[:, [0, 1]] = landmarks[:, [1, 0]]
+    # landmarks[:, [0, 1]] = landmarks[:, [1, 0]]  # correct for CV2 interpretation
     polygon = Polygon(landmarks)
     int_coords = lambda x: np.array(x).round().astype(np.int32)
     exterior = [int_coords(polygon.exterior.coords)]
