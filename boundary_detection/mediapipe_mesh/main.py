@@ -1,21 +1,28 @@
+"""
+    Author: Dan Billmann
+
+    We are writing out .obj files with the masked vertices returned.
+    These will be consumed downstream.
+    
+"""
 from pathlib import Path
+import re
 
 from src.face_mesh import run_face_mesh_pipeline
-from src.utils import parse_cli
+from src.utils import parse_cli, process_obj_file
 
 # https://github.com/tensorflow/tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
 
+
 if __name__ == "__main__":
     args = parse_cli()
-    sp = Path(args.source_img).resolve().as_posix()
-    tp = Path(args.target_img).resolve().as_posix()
+    source_img = Path(args.source_img)
+    target_img = Path(args.target_img)
+    source_obj = Path(args.source_obj)
+    target_obj = Path(args.target_obj)
 
-    # this will compute and annotate
-    run_face_mesh_pipeline(sp, display=False)
-    run_face_mesh_pipeline(tp, display=False)
+    process_obj_file(source_obj)
+    run_face_mesh_pipeline(source_img, display=False)
 
-    # TODO: What are we trying to RETURN to the program for the next step?
-
-    # 1. Quaternion matrix?
-    # 2. Data files to be passed to ICP?
-    # 3. ???
+    process_obj_file(target_obj)
+    run_face_mesh_pipeline(target_img, display=False)

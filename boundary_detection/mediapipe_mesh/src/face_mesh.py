@@ -1,13 +1,18 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from pathlib import Path
 from typing import List, Tuple, Union
 
 import cv2
-import matplotlib.pyplot as plt
 import mediapipe as mp
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+from numba import njit, vectorize
 import numpy as np
+from pywavefront import Wavefront
 from shapely import Point, Polygon
+
+from .utils import write_image, write_matrix, write_object
 
 # mediapipe utils
 mp_drawing = mp.solutions.drawing_utils
@@ -30,6 +35,8 @@ def build_mask_from_boundary(
         boundary = [int_coords(boundary.exterior.coords)]
 
     elif isinstance(boundary, np.ndarray):
+        # TODO: we might need to account for cv2's conventions here
+        # # boundary[:, [0,1]] = boundary[:, [1,0]]
         boundary = [boundary]
 
     mask = cv2.fillPoly(overlay, boundary, color=MASK_COLOR)
@@ -73,23 +80,10 @@ def compute_face_mesh(img: np.ndarray):
             return mark
 
 
-def create_polygon_from_landmarks(landmarks: List[float]) -> Polygon:
-    return Polygon([Point(point.x, point.y) for point in landmarks])
-
-
-def get_boundary_idx():
-    boundary = []
-    with open("data/boundary.txt") as bound:
-        boundary = [int(x.strip()) for x in bound.readlines()]
-
-    return boundary
-
-
 def compute_mesh_and_boundary(
     img: np.ndarray,
     landmarks: np.ndarray,
     fpath: str,
-    prefix="",
     connections=None,
     boundary_spec=None,
 ) -> None:
@@ -110,9 +104,8 @@ def compute_mesh_and_boundary(
         landmark_drawing_spec=None,
         connection_drawing_spec=boundary_spec,
     )
-    fpath = get_annotated_fpath(fpath, prefix=prefix)
 
-    if not cv2.imwrite(fpath, annotated_image):
+    if not write_image(fpath, annotated_image, **{"prefix": "boundary"}):
         print("NO image written.")
 
     return annotated_image, boundary_spec.color
@@ -150,6 +143,15 @@ def get_boundary_from_annotation(
     # try a reversal
     boundary[:, [0, 1]] = boundary[:, [1, 0]]
 
+    # maybe this will help?
+    return boundary
+
+
+def get_boundary_idx():
+    boundary = []
+    with open("data/boundary.txt") as bound:
+        boundary = [int(x.strip()) for x in bound.readlines()]
+
     return boundary
 
 
@@ -183,19 +185,6 @@ def get_color_indices_from_img(
     return boundary
 
 
-def get_annotated_fpath(strpath: str, prefix="") -> str:
-    fname = Path(strpath)
-    dir = fname.stem
-    name = fname.stem if prefix == "" else prefix + "_" + fname.stem
-
-    fpath = fname.parent.parent
-    new_path = fpath / "annotated" / dir / name
-    if prefix != "mask":
-        new_path = new_path.with_suffix(".png")
-
-    return new_path.as_posix()
-
-
 def show_polygon_overlay(
     img: np.ndarray,
     landmarks: np.ndarray,
@@ -205,7 +194,7 @@ def show_polygon_overlay(
     img = img.copy()
 
     # TODO: candidate for refactor
-    landmarks[:, [0, 1]] = landmarks[:, [1, 0]]
+    # landmarks[:, [0, 1]] = landmarks[:, [1, 0]]  # correct for CV2 interpretation
     polygon = Polygon(landmarks)
     int_coords = lambda x: np.array(x).round().astype(np.int32)
     exterior = [int_coords(polygon.exterior.coords)]
@@ -221,80 +210,90 @@ def show_polygon_overlay(
     return
 
 
-def write_mesh_points(mesh: np.ndarray, fpath=""):
-    """Follows the standard defined at Wikipedia.
-
-    ```
-    >>> https://en.wikipedia.org/wiki/Wavefront_.obj_file
-
-    #
-        List of geometric vertices, with (x, y, z, [w]) coordinates, w is optional and defaults to 1.0.
-        v 0.123 0.234 0.345 1.0
-        v ...
-    ```
-
-    """
-
-    with open(fpath, "w+") as tt:
-        for i in range(mesh.shape[0]):
-            tt.write(f"v {mesh[i][0]} {mesh[i][1]} {mesh[i][2]}\n")
-    return
-
-
-def write_out_image(fpath: str, mask: np.ndarray) -> None:
-    """Save as a numpy file and cv2.imwrite to a png"""
-
-    fpath_mask = get_annotated_fpath(fpath, "mask")
-    np.save(fpath_mask, mask)
-
-    # TODO: https://github.com/duck-bongos/jedi-trials/issues/1
-    cv2.imwrite(fpath_mask.replace("mask", "mask_image") + ".png", mask)
-
-
-def run_face_mesh_pipeline(fpath: str, compute=True, display=False) -> Tuple[int, int]:
+def run_face_mesh_pipeline(fpath: Path, display=False) -> Tuple[int, int]:
     # Convert the BGR image to RGB before processing?
-    img = cv2.imread(fpath)
+    fpath_ = fpath.resolve().as_posix()
+    img = cv2.imread(fpath_)
     img = img.copy()
 
-    if compute:
-        landmarks = compute_face_mesh(img)
-        # mesh_2d = mesh.copy()  # <-- I have to think about this still
-        # mesh_2d[:, 2] = 0  # <-- I have to think about this still
+    landmarks = compute_face_mesh(img)
+    # mesh_2d = mesh.copy()  # <-- I have to think about this still
+    # mesh_2d[:, 2] = 0  # <-- I have to think about this still
 
-        # read from static list
-        boundary_idx: List[int] = get_boundary_idx()
-        boundary_contour: List[Tuple[int]] = compute_boundary_edges(
-            boundary=boundary_idx
-        )
+    # read from static list
+    boundary_idx: List[int] = get_boundary_idx()
+    boundary_contour: List[Tuple[int]] = compute_boundary_edges(boundary=boundary_idx)
 
-        annotated_img, color = compute_mesh_and_boundary(
-            img,
-            landmarks,
-            fpath,
-            prefix="boundary",
-            connections=boundary_contour,
-            boundary_spec=BOUNDARY_SPEC,
-        )
+    annotated_img, color = compute_mesh_and_boundary(
+        img,
+        landmarks,
+        fpath,
+        connections=boundary_contour,
+        boundary_spec=BOUNDARY_SPEC,
+    )
 
-        boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
+    boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
 
-        mask = build_mask_from_boundary(annotated_img, boundary)
-        write_out_image(fpath=fpath, mask=mask)
+    # write out mask
+    mask = build_mask_from_boundary(annotated_img, boundary)
+    write_matrix(
+        fpath=fpath, matrix=mask, **{"prefix": "masked"}
+    )  # TODO: not cross-platform compatible
+    write_image(fpath, mask, **{"prefix": "masked", "suffix": "matrix_img"})
 
-        masked_img = (mask * img) / mask.max()
-        write_out_image(fpath=fpath, mask=masked_img)
+    # write out masked image
+    masked_img = (mask * img) / mask.max()
+    write_image(
+        fpath=fpath, img=masked_img, **{"prefix": "masked", "suffix": "img"}
+    )  # TODO: not cross-platform compatible
 
-        # write-out location
-        fpath_name = Path(fpath)
-        name = (
-            fpath_name.parent.parent
-            / "annotated"
-            / fpath_name.stem
-            / f"masked_{fpath_name.stem}.obj"
-        )
-        write_mesh_points(masked_img, name)
+    ### !!!! UNDER CONSTRUCTION !!!! ####
+    fpath_texture = fpath
+    fpath_texture = fpath_texture.with_name(f"{fpath.stem}_texture.txt")
+    texture_read = np.loadtxt(fpath_texture.resolve().as_posix())
+    texture = texture_read.copy()
 
-        if display:
-            show_polygon_overlay(img=img, landmarks=boundary)
+    # List of points of the form (y, x)
+    texture[:, 0] *= img.shape[1]
+    texture[:, 1] *= img.shape[0]
+    texture = np.round(texture, 0).astype(int)
+
+    two_test = np.zeros(img.shape)
+    for row, col in texture:
+        two_test[col, row] = MASK_COLOR
+
+    write_image(
+        fpath,
+        two_test,
+        **{"prefix": "object_mask", "extension": "png"},
+    )
+
+    # now merge with the mask
+    constrained_face = (two_test * mask) // 255
+    # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt",
+    write_image(
+        fpath,
+        constrained_face,
+        **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
+    )
+    # !!!
+
+    things = []
+    for idx, (row, col) in enumerate(texture):
+        # switch column and row
+        if all(constrained_face[col, row] == MASK_COLOR):
+            things.append(idx)
+
+    # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt"
+    idxs = np.array(things)
+    fpath_voxel = fpath
+    fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
+    voxels_read = np.loadtxt(fpath_voxel.resolve().as_posix())
+
+    write_object(fpath, idxs, texture=texture_read, vertices=voxels_read)
+    #####################################
+
+    if display:
+        show_polygon_overlay(img=img, landmarks=boundary)
 
     return
