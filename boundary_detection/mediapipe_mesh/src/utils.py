@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import re
+from typing import List, Set
 
 from box import Box
 import cv2
@@ -115,13 +116,21 @@ def write_matrix(fpath: Path, matrix: np.ndarray, **kwargs) -> None:
 
 
 def write_object(
-    fpath: Path, index: np.ndarray, texture: np.ndarray, vertices: np.ndarray, **kwargs
+    fpath_out: Path,
+    fpath_obj: Path,
+    index: np.ndarray,
+    texture: np.ndarray,
+    vertices: np.ndarray,
+    **kwargs,
 ) -> None:
     """Create an .obj file using the texture and vertices data."""
     d = {"prefix": "masked", "suffix": "object", "extension": "obj"}
     d.update(kwargs)
+    indices_min = min(index)
 
-    fpath_selected = get_annotated_fpath(fpath, **d)
+    get_vertex_indices = lambda a: set(int(i) for i in re.split("f| |/", a[2:]))
+
+    fpath_selected = get_annotated_fpath(fpath_out, **d)
 
     with open(fpath_selected, "w") as s:
         # TODO: Should I include a 'material' .mtl file in the header?
@@ -133,3 +142,16 @@ def write_object(
         # write texture (2D) second
         for lin in texture[index]:
             s.write(f"vs {' '.join([str(s) for s in lin])}\n")
+
+        with open(fpath_obj, "r") as f_obj:
+            read = f_obj.read()
+            faces = re.findall("f.*", read)
+            # for every face object...
+            vertices_of_faces = [get_vertex_indices(f) for f in faces]
+            for face_idxs in vertices_of_faces:
+                if min(face_idxs) >= indices_min:
+                    # if all the vertex indices of the face are in the boundary
+                    if len(face_idxs) == len(face_idxs.intersection(set(index))):
+                        # write out the line to the new file
+                        s_out = "f " + " ".join([f"{i}/{i}" for i in face_idxs]) + "\n"
+                        s.write(s_out)

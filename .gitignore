@@ -45,4 +45,5 @@ ICP/build/*
 
 # hide pediatric data
 !data/*mask*.png
-
+data/source/*.png
+data/target/*.png

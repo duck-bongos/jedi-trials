@@ -1,18 +1,12 @@
-"""Figure out how to convert the pixels to the geometric coordinates."""
+"""Grab the faces"""
+import re
 
-import numpy as np
-
-obj = np.loadtxt(
-    "new.obj",
-    delimiter=" ",
-)
-
-# rows
-print(obj[:, 0].min(), obj[:, 0].max())
-
-# columns
-print(obj[:, 1].min(), obj[:, 1].max())
-
-# depth
-print(obj[:, 2].min(), obj[:, 2].max())
-print()
+with open(
+    "/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/data/annotated/working_objects/source.obj"
+) as so:
+    s = so.read()
+    x = re.findall("f.*", s)
+    f = lambda a: set(int(i) for i in re.split("f| |/", a[2:]))
+    y = list(map(f, x))
+    print(y[0])
+    print()

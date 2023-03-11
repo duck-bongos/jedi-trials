@@ -21,8 +21,8 @@ if __name__ == "__main__":
     source_obj = Path(args.source_obj)
     target_obj = Path(args.target_obj)
 
-    process_obj_file(source_obj)
-    run_face_mesh_pipeline(source_img, display=False)
+    # process_obj_file(source_obj)
+    run_face_mesh_pipeline(fpath_img=source_img, fpath_obj=source_obj, display=False)
 
-    process_obj_file(target_obj)
-    run_face_mesh_pipeline(target_img, display=False)
+    # process_obj_file(target_obj)
+    run_face_mesh_pipeline(fpath_img=target_img, fpath_obj=target_obj, display=False)
