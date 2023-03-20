@@ -134,7 +134,8 @@ def write_object(
 
     with open(fpath_selected, "w") as s:
         # TODO: Should I include a 'material' .mtl file in the header?
-
+        # create an index set
+        index_ = set(index)
         # write vertices (3D) first
         for line in vertices[index]:
             s.write(f"v {' '.join([str(s) for s in line])}\n")
@@ -146,12 +147,10 @@ def write_object(
         with open(fpath_obj, "r") as f_obj:
             read = f_obj.read()
             faces = re.findall("f.*", read)
-            # for every face object...
-            vertices_of_faces = [get_vertex_indices(f) for f in faces]
-            for face_idxs in vertices_of_faces:
-                if min(face_idxs) >= indices_min:
-                    # if all the vertex indices of the face are in the boundary
-                    if len(face_idxs) == len(face_idxs.intersection(set(index))):
-                        # write out the line to the new file
-                        s_out = "f " + " ".join([f"{i}/{i}" for i in face_idxs]) + "\n"
-                        s.write(s_out)
+            # for every face in the mesh...
+            for face_idxs in faces:
+                vtx = get_vertex_indices(face_idxs)
+
+                # make sure all the face vertices are within the boundary
+                if vtx.intersection(index_):
+                    s.write(face_idxs)
