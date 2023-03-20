@@ -146,7 +146,7 @@ def write_object(
 
         with open(fpath_obj, "r") as f_obj:
             read = f_obj.read()
-            faces = re.findall("f.*", read)
+            faces = re.findall("f\ .*", read)
             # for every face in the mesh...
             for face_idxs in faces:
                 vtx = get_vertex_indices(face_idxs)
