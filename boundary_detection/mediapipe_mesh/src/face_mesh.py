@@ -1,5 +1,9 @@
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
+"""
+    Author: Dan Billmann
+    Date: 3/21/23
+
+    Module to work with mediapipe face meshes.
+"""
 from pathlib import Path
 from typing import List, Tuple, Union
 
@@ -8,9 +12,17 @@ import mediapipe as mp
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
 import numpy as np
-from shapely import Point, Polygon
+from shapely import Polygon
 
-from .utils import process_obj_file, write_image, write_matrix, write_object
+from .utils import (
+    center_face,
+    preprocess_pixels,
+    preprocess_voxels,
+    process_obj_file,
+    write_image,
+    write_matrix,
+    write_object,
+)
 
 # mediapipe utils
 mp_drawing = mp.solutions.drawing_utils
@@ -85,16 +97,18 @@ def compute_mesh_and_boundary(
     connections=None,
     boundary_spec=None,
 ) -> None:
-    """Writes out mesh and boundary to file."""
+    """Captures then writes out both mesh and boundary to file."""
     annotated_image = img.copy()
     connections = (
         mp_face_mesh.FACEMESH_TESSELATION if connections is None else connections
     )
+
     boundary_spec = (
         mp_drawing_styles.get_default_face_mesh_tesselation_style()
         if boundary_spec is None
         else boundary_spec
     )
+
     mp_drawing.draw_landmarks(
         image=annotated_image,
         landmark_list=landmarks,
@@ -104,7 +118,7 @@ def compute_mesh_and_boundary(
     )
 
     if not write_image(fpath, annotated_image, **{"prefix": "boundary"}):
-        print("NO image written.")
+        print("WARNING: No image written.")
 
     return annotated_image, boundary_spec.color
 
@@ -146,6 +160,15 @@ def get_boundary_from_annotation(
 
 
 def get_boundary_idx():
+    """Get the boundary IDs.
+
+    I put the boundary IDs I found at the below URL into a hard-
+    coded text file for simpler reads.
+
+    https://github.com/tensorflow/
+    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
+    face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
+    """
     boundary = []
     with open("data/boundary.txt") as bound:
         boundary = [int(x.strip()) for x in bound.readlines()]
@@ -212,12 +235,28 @@ def run_face_mesh_pipeline(
     fpath_img: Path, fpath_obj: Path, display=False
 ) -> Tuple[int, int]:
     # Convert the BGR image to RGB before processing?
-    fpath_ = fpath_img.resolve().as_posix()
-    img = cv2.imread(fpath_)
+    fpath_img_ = fpath_img.resolve().as_posix()
+    img = cv2.imread(fpath_img_)
     img = img.copy()
+
+    # !!!!!! UNDER CONSTRUCTION - Face shifting
+    """nf = img.copy()
+    shift_nf = center_face(nf)
+
+    write_image(
+        fpath_img,
+        shift_nf,
+        **{"prefix": "shifted_face", "extension": "png"},
+    )"""
+    # !!!!! CONSTRUCTION ZONE ENDS !!!!! #
 
     # process the file
     process_obj_file(fpath_obj)
+
+    centered_voxels, fpath_centered_voxels = preprocess_voxels(
+        fpath_obj, center=True, trim_z=0.875
+    )
+    centered_texture, fpath_centered_texture = preprocess_pixels(fpath_obj)
 
     landmarks = compute_face_mesh(img)
     # mesh_2d = mesh.copy()  # <-- I have to think about this still
@@ -239,18 +278,18 @@ def run_face_mesh_pipeline(
 
     # write out mask
     mask = build_mask_from_boundary(annotated_img, boundary)
-    write_matrix(
+    """write_matrix(
         fpath=fpath_img, matrix=mask, **{"prefix": "masked"}
-    )  # TODO: not cross-platform compatible
+    )"""
+    # TODO: not cross-platform compatible
     write_image(fpath_img, mask, **{"prefix": "masked", "suffix": "matrix_img"})
 
     # write out masked image
     masked_img = (mask * img) / mask.max()
     write_image(
         fpath=fpath_img, img=masked_img, **{"prefix": "masked", "suffix": "img"}
-    )  # TODO: not cross-platform compatible
+    )
 
-    ### !!!! UNDER CONSTRUCTION !!!! ####
     fpath_texture = fpath_img
     fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")
     texture_read = np.loadtxt(fpath_texture.resolve().as_posix())
@@ -261,25 +300,27 @@ def run_face_mesh_pipeline(
     texture[:, 1] *= img.shape[0]
     texture = np.round(texture, 0).astype(int)
 
-    two_test = np.zeros(img.shape)
+    texture_img = np.zeros(img.shape)
     for row, col in texture:
-        two_test[col, row] = MASK_COLOR
+        texture_img[col, row] = MASK_COLOR
 
     write_image(
         fpath_img,
-        two_test,
+        texture_img,
         **{"prefix": "object_mask", "extension": "png"},
     )
 
     # now merge with the mask
-    constrained_face = (two_test * mask) // 255
+    constrained_face = (
+        texture_img * mask
+    ) // 255  # divide by 255 to return to 0-255 normal values.
     # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt",
     write_image(
         fpath_img,
         constrained_face,
         **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
     )
-    # !!!
+    # !!!!!!
 
     things = []
     for idx, (row, col) in enumerate(texture):
@@ -293,7 +334,13 @@ def run_face_mesh_pipeline(
     fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
     voxels_read = np.loadtxt(fpath_voxel.resolve().as_posix())
 
-    write_object(fpath_img, fpath_obj, idxs, texture=texture_read, vertices=voxels_read)
+    write_object(
+        fpath_out=fpath_img,
+        fpath_obj=fpath_obj,
+        index=idxs,
+        texture=centered_texture,
+        vertices=centered_voxels,
+    )
     #####################################
 
     if display:

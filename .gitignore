@@ -43,7 +43,8 @@
 ICP/build/*
 
 
-# hide pediatric data
-!data/*mask*.png
-data/source/*.png
-data/target/*.png
+# removed hiding pediatric data, using my own facial scans
+
+
+# Ignore some output
+*.npy 
