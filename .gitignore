@@ -39,12 +39,19 @@
 *.vs
 *.DS_Store
 
-# ICP ignores
-ICP/build/*
-
+# Files I probably don't need
+do_i_need_these/*
+!do_i_need_these/nah.txt
 
 # removed hiding pediatric data, using my own facial scans
 
 
 # Ignore some output
 *.npy 
+
+# Ignore anything in a build directory
+optimization/HarmonicMap/build/*
+
+# Ignore data
+optimization/HarmonicMap/data/*
+
