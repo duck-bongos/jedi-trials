@@ -51,6 +51,7 @@ do_i_need_these/*
 
 # Ignore anything in a build directory
 optimization/HarmonicMap/build/*
+optimization/HarmonicMap/bin/*
 
 # Ignore data
 optimization/HarmonicMap/data/*
