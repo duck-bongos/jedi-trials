@@ -25,3 +25,8 @@ add_executable(plop ${SRCS})
 # Install the executeable program in the bin folder of the
 # current project directory.
 install(TARGETS plop DESTINATION ${CMAKE_SOURCE_DIR}/bin)
+
+# copy the directory 
+add_custom_command(TARGET plop 
+                   POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:plop> ${CMAKE_SOURCE_DIR}/bin)

@@ -275,7 +275,7 @@ def write_object(
 
         # write texture (2D) second
         for lin in texture[index]:
-            s.write(f"vs {' '.join([str(s) for s in lin])}\n")
+            s.write(f"vt {' '.join([str(s) for s in lin])}\n")
 
         with open(fpath_obj, "r") as f_obj:
             read = f_obj.read()

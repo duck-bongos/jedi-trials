@@ -55,4 +55,5 @@ optimization/HarmonicMap/bin/*
 
 # Ignore data
 optimization/HarmonicMap/data/*
-
+*Archive.zip
+*flat_dan.zip*
