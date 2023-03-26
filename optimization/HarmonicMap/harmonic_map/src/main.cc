@@ -84,16 +84,75 @@ void computeNormal(CHarmonicMapMesh *pMesh)
     }
 };
 
-int main(int argc, char *argv[])
+#include <cstring>
+
+const char *get_new_pathname(const char *string)
+/*!
+Convert the input path name to the output pathname
+
+input: data/source/
+*/
 {
-    if (argc < 2)
+    const char *tail = strrchr(string, '/') + 1;
+    const char *new_string = nullptr;
+    if (strstr(string, "source") != nullptr)
     {
-        printf("Usage:\n%s input.m\n--or--\n%s input.obj", argv[0], argv[0]);
-        return EXIT_FAILURE;
+        new_string = "data/optimized/source/";
+    }
+    else if (strstr(string, "target") != nullptr)
+    {
+        new_string = "data/optimized/target/";
     }
 
-    // Read in the mesh from the file
-    std::string mesh_name(argv[1]);
+    if (new_string != nullptr)
+    {
+        size_t len = strlen(tail) + strlen(new_string) + 1;
+        char *result = new char[len]; // make sure to delete[]
+        strcpy(result, new_string);
+        strcat(result, tail);
+        return result;
+    }
+    else
+    {
+        return string;
+    }
+}
+
+int main(int argc, char *argv[])
+/*! Run this as
+
+<executable> <input_object.obj> <output_object.obj>
+*
+*/
+
+{
+    const char *new_pathname;
+    std::string mesh_name;
+
+    if (argc < 2)
+    {
+        printf("Usage:\n%s input.m\n--or--\n%s input.obj\n", argv[0], argv[0]);
+        return EXIT_FAILURE;
+    }
+    else if (argc == 2)
+    {
+        std::string mesh_name(argv[1]);
+        /*!
+         * Get the new pathname
+         */
+        const char *new_pathname = get_new_pathname(argv[1]);
+    }
+    else
+    {
+        // Read in the mesh from the file
+        std::string mesh_name(argv[1]);
+
+        /*!
+         * Get the new pathname
+         */
+        printf("Using provided path, %s, as the output file path.\n", argv[2]);
+        const char *new_pathname = argv[2];
+    }
 
     if (strutil::endsWith(mesh_name, ".m"))
     {
@@ -106,6 +165,7 @@ int main(int argc, char *argv[])
     else
     {
         printf("Only file extensions '.m' and '.obj' supported.\n");
+        printf("FUCK!?? %s was provided ", mesh_name.c_str());
         return EXIT_FAILURE;
     }
 
@@ -114,14 +174,18 @@ int main(int argc, char *argv[])
     computeNormal(&g_mesh);
     g_mapper.set_mesh(&g_mesh);
 
-    /*Compute the Harmonic Map*/
+    /*!
+    Compute the Harmonic Map
+    */
     g_mapper.map();
-    g_mesh.write_obj("/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/data/annotated/working_objects");
-    printf("Wrote to data/annotated/working_objects.");
 
     /*!
      * Write the computed results to a file
      * */
-    g_mesh.write_obj("/Users/dan/Desktop/flat_dan.obj");
+    g_mesh.write_obj(new_pathname);
+    printf("\nWrote to %s.\n", new_pathname);
+
+    /*!free the memory*/
+    delete[] new_pathname;
     return EXIT_SUCCESS;
 }

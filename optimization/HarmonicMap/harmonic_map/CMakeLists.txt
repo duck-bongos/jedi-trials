@@ -19,14 +19,14 @@ file(GLOB SRCS
 
 # Add an executable target called harmonic_map to be built from 
 # the source files.
-add_executable(plop ${SRCS})
+add_executable(map ${SRCS})
 
 
 # Install the executeable program in the bin folder of the
 # current project directory.
-install(TARGETS plop DESTINATION ${CMAKE_SOURCE_DIR}/bin)
+install(TARGETS map DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 
 # copy the directory 
-add_custom_command(TARGET plop 
+add_custom_command(TARGET map 
                    POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:plop> ${CMAKE_SOURCE_DIR}/bin)
+                   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:map> ${CMAKE_SOURCE_DIR}/bin)
