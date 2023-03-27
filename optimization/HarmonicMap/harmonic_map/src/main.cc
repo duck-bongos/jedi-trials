@@ -1,3 +1,9 @@
+/*!
+ * author: Dan Billmann
+ * coauthor: David Xianfeng Gu (lines 24 - 91)
+ * date: March 27, 2023
+ * 
+ */
 #include <math.h>
 #include <iostream>
 #include <stdio.h>
@@ -83,40 +89,6 @@ void computeNormal(CHarmonicMapMesh *pMesh)
         v->normal() = n;
     }
 };
-
-#include <cstring>
-
-const char *get_new_pathname(const char *string)
-/*!
-Convert the input path name to the output pathname
-
-input: data/source/
-*/
-{
-    const char *tail = strrchr(string, '/') + 1;
-    const char *new_string = nullptr;
-    if (strstr(string, "source") != nullptr)
-    {
-        new_string = "data/optimized/source/";
-    }
-    else if (strstr(string, "target") != nullptr)
-    {
-        new_string = "data/optimized/target/";
-    }
-
-    if (new_string != nullptr)
-    {
-        size_t len = strlen(tail) + strlen(new_string) + 1;
-        char *result = new char[len]; // make sure to delete[]
-        strcpy(result, new_string);
-        strcat(result, tail);
-        return result;
-    }
-    else
-    {
-        return string;
-    }
-}
 
 int main(int argc, char *argv[])
 /*! Run this as

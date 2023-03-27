@@ -25,7 +25,7 @@ cmake --build .
 
 bin\map.exe ..\..\data\annotated\source\masked_source_object.obj ..\..\data\optimized\mapped_source.obj
 
-bin\map.exe ..\..\data\annotated\target\masked_target_object.obj ..\data\optimized\mapped_target.obj
+bin\map.exe ..\..\data\annotated\target\masked_target_object.obj ..\..\data\optimized\mapped_target.obj
 
 Rem return to the top level directory
 popd
