@@ -57,3 +57,6 @@ optimization/HarmonicMap/bin/*
 optimization/HarmonicMap/data/*
 *Archive.zip
 *flat_dan.zip*
+
+# In the event the temporary virtualenv "tmp" isn't clean
+tmp*

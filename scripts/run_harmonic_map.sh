@@ -5,7 +5,7 @@ cd build
 cmake ..
 cmake --build .
 
-# return to HarmonicMap
+# return to optimization/HarmonicMap
 cd ..
 
 # check the bin directory for the executable.

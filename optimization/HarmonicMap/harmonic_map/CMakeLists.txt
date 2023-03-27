@@ -24,9 +24,9 @@ add_executable(map ${SRCS})
 
 # Install the executeable program in the bin folder of the
 # current project directory.
-install(TARGETS map DESTINATION ${CMAKE_SOURCE_DIR}/bin)
-
-# copy the directory 
-add_custom_command(TARGET map 
-                   POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:map> ${CMAKE_SOURCE_DIR}/bin)
+add_custom_command(
+    TARGET map
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E 
+    copy $<TARGET_FILE:map> ${CMAKE_SOURCE_DIR}/bin
+  )

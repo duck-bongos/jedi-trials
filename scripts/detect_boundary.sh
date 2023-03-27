@@ -24,7 +24,7 @@ then
 
 fi
 
-# navigate the the mediapipe_mesh directory
+# navigate to the mediapipe_mesh directory
 cd boundary_detection/mediapipe_mesh
 
 # for now, enforce the data directory is at the top level
@@ -41,7 +41,7 @@ then
 	# turn off the virtual environment
 	deactivate
 
-	# remove the virtualenvironment
+	# remove the virtual environment
 	rm -rf tmp
 fi
 

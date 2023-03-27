@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        printf("Usage:\n%s input.m\n--or--\n%s <input.obj> <output.obj>\n", argv[0], argv[0]);
+        printf("Usage:\n%s <input.m> <output.m>\n--or--\n%s <input.obj> <output.obj>\n", argv[0], argv[0]);
         return EXIT_FAILURE;
     }
 
