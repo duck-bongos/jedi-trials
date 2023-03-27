@@ -18,10 +18,10 @@ then
 fi
 
 # echo -e 'Mapping source...'
-echo -e "../../data/annotated/source/masked_source_object.obj" | bin/map
+bin/map ../../data/annotated/source/masked_source_object.obj ../../data/optimized/mapped_source.obj
 
 # echo -e 'Mapping target...'
-echo -e "../../data/annotated/target/masked_target_object.obj" | bin/map
+bin/map ../../data/annotated/target/masked_target_object.obj ../../data/optimized/mapped_target.obj
 
 
 # return to the top level directory

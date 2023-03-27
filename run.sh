@@ -5,7 +5,7 @@ chmod -R 755 scripts
 
 # clean the directory pertaining to boundary detection
 # runs boundary_clean.sh, map_clean.sh
-./scripts/clean.sh
+./clean.sh
 
 # detect the boundary
 ./scripts/detect_boundary.sh
@@ -13,3 +13,6 @@ chmod -R 755 scripts
 # detect the mapping
 ./scripts/run_harmonic_map.sh
 
+echo -e "\n----------------------------------------"
+echo -e "Run complete!"
+echo -e "----------------------------------------\n"

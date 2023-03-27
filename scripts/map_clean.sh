@@ -1,4 +1,9 @@
 # starting from top level directory
+
+# clean the data/optimized directory
+rm -rf data/optimized/*
+
+# clean the build and bin
 cd optimization/HarmonicMap/
 
 echo "removing ./bin contents..."

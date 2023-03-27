@@ -15,12 +15,10 @@ import numpy as np
 from shapely import Polygon
 
 from .utils import (
-    center_face,
     preprocess_pixels,
     preprocess_voxels,
     process_obj_file,
     write_image,
-    write_matrix,
     write_object,
 )
 

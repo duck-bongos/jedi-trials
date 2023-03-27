@@ -126,33 +126,13 @@ int main(int argc, char *argv[])
 */
 
 {
-    const char *new_pathname;
-    std::string mesh_name;
-
-    if (argc < 2)
+    if (argc < 3)
     {
-        printf("Usage:\n%s input.m\n--or--\n%s input.obj\n", argv[0], argv[0]);
+        printf("Usage:\n%s input.m\n--or--\n%s <input.obj> <output.obj>\n", argv[0], argv[0]);
         return EXIT_FAILURE;
     }
-    else if (argc == 2)
-    {
-        std::string mesh_name(argv[1]);
-        /*!
-         * Get the new pathname
-         */
-        const char *new_pathname = get_new_pathname(argv[1]);
-    }
-    else
-    {
-        // Read in the mesh from the file
-        std::string mesh_name(argv[1]);
 
-        /*!
-         * Get the new pathname
-         */
-        printf("Using provided path, %s, as the output file path.\n", argv[2]);
-        const char *new_pathname = argv[2];
-    }
+    std::string mesh_name(argv[1]);
 
     if (strutil::endsWith(mesh_name, ".m"))
     {
@@ -165,7 +145,6 @@ int main(int argc, char *argv[])
     else
     {
         printf("Only file extensions '.m' and '.obj' supported.\n");
-        printf("FUCK!?? %s was provided ", mesh_name.c_str());
         return EXIT_FAILURE;
     }
 
@@ -182,10 +161,20 @@ int main(int argc, char *argv[])
     /*!
      * Write the computed results to a file
      * */
-    g_mesh.write_obj(new_pathname);
-    printf("\nWrote to %s.\n", new_pathname);
+    if (strutil::endsWith(argv[2], ".m"))
+    {
+        g_mesh.write_m(argv[2]);
+    }
+    else if (strutil::endsWith(argv[2], ".obj"))
+    {
+        g_mesh.write_obj(argv[2]);
+    }
+    else
+    {
+        printf("Only file extensions '.m' and '.obj' supported.\n");
+        return EXIT_FAILURE;
+    }
+    printf("\nWrote to %s.\n", argv[2]);
 
-    /*!free the memory*/
-    delete[] new_pathname;
     return EXIT_SUCCESS;
 }
