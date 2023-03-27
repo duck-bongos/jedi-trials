@@ -1,9 +1,9 @@
-echo ----------------
-echo Begin Teardown
-echo ----------------
+@echo ----------------
+@echo Begin Teardown
+@echo ----------------
 
 
 Rem remove the virtual environment
 deactivate
-rd /s tmp
-echo Teardown complete.
+@rd /s /q tmp
+@echo Teardown complete.
