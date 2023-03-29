@@ -1752,8 +1752,8 @@ namespace MeshLib
 
         _os << "OFF" << std::endl;
         _os << m_verts.size() << " " << m_faces.size() << " " << m_edges.size() << std::endl;
-
         int vid = 0;
+
         for (typename std::list<CVertex *>::iterator viter = m_verts.begin(); viter != m_verts.end(); viter++)
         {
             tVertex v = *viter;

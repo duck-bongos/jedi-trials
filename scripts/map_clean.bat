@@ -15,6 +15,8 @@
 
 @echo Removing .\build contents...
 @del /f /q build\*
+@rd /s /q build
+mkdir build
 @echo Removed .\build contents
 
 @popd

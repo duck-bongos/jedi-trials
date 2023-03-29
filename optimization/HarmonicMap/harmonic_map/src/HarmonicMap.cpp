@@ -9,21 +9,25 @@
 #define M_PI 3.141592653589793238462643383279
 #endif
 
-void MeshLib::CHarmonicMap::set_mesh(CHarmonicMapMesh* pMesh)
+void MeshLib::CHarmonicMap::set_mesh(CHarmonicMapMesh *pMesh)
 {
     m_pMesh = pMesh;
-    
+
     // 1. compute the weights of edges
+    printf("Calculating edge weight...\n");
     _calculate_edge_weight();
+    printf("Calculated edge weight.\n");
 
     // 2. map the boundary to unit circle
+    printf("Setting boundary...\n");
     _set_boundary();
+    printf("Set boundary.\n");
 
     // 3. initialize the map of interior vertices to (0, 0)
     using M = CHarmonicMapMesh;
     for (M::MeshVertexIterator viter(m_pMesh); !viter.end(); ++viter)
     {
-        M::CVertex* pV = *viter;
+        M::CVertex *pV = *viter;
         if (pV->boundary())
             continue;
 
@@ -31,7 +35,7 @@ void MeshLib::CHarmonicMap::set_mesh(CHarmonicMapMesh* pMesh)
     }
 }
 
-double MeshLib::CHarmonicMap::step_one() 
+double MeshLib::CHarmonicMap::step_one()
 {
     if (!m_pMesh)
     {
@@ -45,7 +49,7 @@ double MeshLib::CHarmonicMap::step_one()
     double max_error = -DBL_MAX;
     for (M::MeshVertexIterator viter(m_pMesh); !viter.end(); ++viter)
     {
-        M::CVertex* pV = *viter;
+        M::CVertex *pV = *viter;
         if (pV->boundary())
             continue;
 
@@ -53,8 +57,8 @@ double MeshLib::CHarmonicMap::step_one()
         CPoint2 suv(0, 0);
         for (M::VertexVertexIterator vviter(pV); !vviter.end(); vviter++)
         {
-            M::CVertex* pW = *vviter;
-            M::CEdge* pE = m_pMesh->vertexEdge(pV, pW);
+            M::CVertex *pW = *vviter;
+            M::CEdge *pE = m_pMesh->vertexEdge(pV, pW);
             double w = pE->weight();
             sw += w;
             suv = suv + pW->uv() * w;
@@ -81,16 +85,20 @@ void MeshLib::CHarmonicMap::iterative_map(double epsilon)
 
     using M = CHarmonicMapMesh;
 
+    int count = 0;
+
     // take steps until it converges.
     while (true)
     {
         double error = this->step_one();
         if (error < epsilon)
             break;
+        count += 1;
+
+        printf("Completed %s iterations.\n", std::to_string(count).c_str());
     }
 }
-
-void MeshLib::CHarmonicMap::map() 
+void MeshLib::CHarmonicMap::map()
 {
     if (!m_pMesh)
     {
@@ -101,11 +109,11 @@ void MeshLib::CHarmonicMap::map()
     using M = CHarmonicMapMesh;
 
     // 1. Initialize
-    int vid = 0;  // interior vertex id
-    int bid = 0;  // boundary vertex id
+    int vid = 0; // interior vertex id
+    int bid = 0; // boundary vertex id
     for (M::MeshVertexIterator viter(m_pMesh); !viter.end(); ++viter)
     {
-        M::CVertex* pV = *viter;
+        M::CVertex *pV = *viter;
 
         if (pV->boundary())
             pV->idx() = bid++;
@@ -122,7 +130,7 @@ void MeshLib::CHarmonicMap::map()
 
     for (M::MeshVertexIterator viter(m_pMesh); !viter.end(); ++viter)
     {
-        M::CVertex* pV = *viter;
+        M::CVertex *pV = *viter;
         if (pV->boundary())
             continue;
         int vid = pV->idx();
@@ -130,10 +138,10 @@ void MeshLib::CHarmonicMap::map()
         double sw = 0;
         for (M::VertexVertexIterator witer(pV); !witer.end(); ++witer)
         {
-            M::CVertex* pW = *witer;
+            M::CVertex *pW = *witer;
             int wid = pW->idx();
 
-            M::CEdge* e = m_pMesh->vertexEdge(pV, pW);
+            M::CEdge *e = m_pMesh->vertexEdge(pV, pW);
             double w = e->weight();
 
             if (pW->boundary())
@@ -173,7 +181,7 @@ void MeshLib::CHarmonicMap::map()
         // set boundary constraints vector b
         for (M::MeshVertexIterator viter(m_pMesh); !viter.end(); ++viter)
         {
-            M::CVertex* pV = *viter;
+            M::CVertex *pV = *viter;
             if (!pV->boundary())
                 continue;
             int id = pV->idx();
@@ -192,7 +200,7 @@ void MeshLib::CHarmonicMap::map()
         // set the images of the harmonic map to interior vertices
         for (M::MeshVertexIterator viter(m_pMesh); !viter.end(); ++viter)
         {
-            M::CVertex* pV = *viter;
+            M::CVertex *pV = *viter;
             if (pV->boundary())
                 continue;
             int id = pV->idx();
@@ -201,24 +209,24 @@ void MeshLib::CHarmonicMap::map()
     }
 }
 
-void MeshLib::CHarmonicMap::_calculate_edge_weight() 
+void MeshLib::CHarmonicMap::_calculate_edge_weight()
 {
     using M = CHarmonicMapMesh;
 
     // 1. compute edge length
     for (M::MeshEdgeIterator eiter(m_pMesh); !eiter.end(); ++eiter)
     {
-        M::CEdge* pE = *eiter;
-        M::CVertex* v1 = m_pMesh->edgeVertex1(pE);
-        M::CVertex* v2 = m_pMesh->edgeVertex2(pE);
+        M::CEdge *pE = *eiter;
+        M::CVertex *v1 = m_pMesh->edgeVertex1(pE);
+        M::CVertex *v2 = m_pMesh->edgeVertex2(pE);
         pE->length() = (v1->point() - v2->point()).norm();
     }
 
     // 2. compute corner angle
     for (M::MeshFaceIterator fiter(m_pMesh); !fiter.end(); ++fiter)
     {
-        M::CFace* pF = *fiter;
-        M::CHalfEdge* pH[3];
+        M::CFace *pF = *fiter;
+        M::CHalfEdge *pH[3];
         pH[0] = m_pMesh->faceHalfedge(pF);
         for (int i = 0; i < 3; i++)
         {
@@ -230,7 +238,7 @@ void MeshLib::CHarmonicMap::_calculate_edge_weight()
         {
             len[i] = m_pMesh->halfedgeEdge(pH[i])->length();
         }
-        
+
         for (int i = 0; i < 3; i++)
         {
             double a = len[(i + 1) % 3], b = len[(i + 2) % 3], c = len[i];
@@ -241,14 +249,14 @@ void MeshLib::CHarmonicMap::_calculate_edge_weight()
     // 3. compute edge weight
     for (M::MeshEdgeIterator eiter(m_pMesh); !eiter.end(); ++eiter)
     {
-        M::CEdge* pE = *eiter;
+        M::CEdge *pE = *eiter;
 
         if (!pE->boundary())
         {
             double theta[2];
             theta[0] = m_pMesh->halfedgeNext(m_pMesh->edgeHalfedge(pE, 0))->angle();
             theta[1] = m_pMesh->halfedgeNext(m_pMesh->edgeHalfedge(pE, 1))->angle();
-            pE->weight() = std::cos(theta[0]) / std::sin(theta[0]) + 
+            pE->weight() = std::cos(theta[0]) / std::sin(theta[0]) +
                            std::cos(theta[1]) / std::sin(theta[1]);
         }
         else
@@ -259,45 +267,51 @@ void MeshLib::CHarmonicMap::_calculate_edge_weight()
     }
 }
 
-void MeshLib::CHarmonicMap::_set_boundary() 
+void MeshLib::CHarmonicMap::_set_boundary()
 {
     using M = CHarmonicMapMesh;
 
     // 1. get the boundary half edge loop
+    printf("Instantiating CBoundary boundary...\n");
     M::CBoundary boundary(m_pMesh);
-    std::vector<M::CLoop*>& pLs = boundary.loops();
+    printf("Instantiated CBoundary boundary.\n");
+    std::vector<M::CLoop *> &pLs = boundary.loops();
     if (pLs.size() != 1)
     {
         std::cerr << "Only topological disk accepted!" << std::endl;
         exit(EXIT_FAILURE);
     }
-    M::CLoop* pL = pLs[0];
-    std::list<M::CHalfEdge*>& pHs = pL->halfedges();
-    
+    M::CLoop *pL = pLs[0];
+    std::list<M::CHalfEdge *> &pHs = pL->halfedges();
+
     // 2. compute the total length of the boundary
+    printf("Computing total length of the boundary...\n");
     double sum = 0.0;
-    std::list<M::CHalfEdge*>::iterator it;
+    std::list<M::CHalfEdge *>::iterator it;
     for (it = pHs.begin(); it != pHs.end(); ++it)
     {
-        M::CHalfEdge* pH = *it;
+        M::CHalfEdge *pH = *it;
         sum += m_pMesh->halfedgeEdge(pH)->length();
     }
+    printf("Computed total length of the boundary.\n");
 
     // 3. parameterize the boundary using arc length parameter
+    printf("Parameterizing the boundary using arc length parameter...\n");
     double len = 0.0;
     for (it = pHs.begin(); it != pHs.end(); ++it)
     {
-        M::CHalfEdge* pH = *it;
-        M::CVertex* pV = m_pMesh->halfedgeVertex(pH);
+        M::CHalfEdge *pH = *it;
+        M::CVertex *pV = m_pMesh->halfedgeVertex(pH);
 
         len += m_pMesh->halfedgeEdge(pH)->length();
         double angle = len / sum * 2.0 * M_PI;
-        pV->uv() = CPoint2(cos(angle), sin(angle)); 
+        pV->uv() = CPoint2(cos(angle), sin(angle));
     }
+    printf("Parameterized the boundary using arc length parameter.\n");
 }
 
-double MeshLib::CHarmonicMap::_inverse_cosine_law(double a, double b, double c) 
-{ 
+double MeshLib::CHarmonicMap::_inverse_cosine_law(double a, double b, double c)
+{
     double cs = (a * a + b * b - c * c) / (2.0 * a * b);
     assert(cs <= 1.0 && cs >= -1.0);
     return std::acos(cs);
