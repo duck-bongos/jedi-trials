@@ -2,7 +2,7 @@
  * author: Dan Billmann
  * coauthor: David Xianfeng Gu (lines 24 - 91)
  * date: March 27, 2023
- * 
+ *
  */
 #include <math.h>
 #include <iostream>
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     /*!
     Compute the Harmonic Map
     */
-    g_mapper.map();
+    g_mapper.iterative_map(0.001);
 
     /*!
      * Write the computed results to a file
