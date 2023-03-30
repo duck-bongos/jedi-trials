@@ -968,16 +968,30 @@ namespace MeshLib
 
             if (token == "v")
             {
-                CPoint p;
-                for (int i = 0; i < 3; i++)
+                CPoint p;  // Vertex point
+                CPoint c;  // Color point
+                // for (int i = 0; i < 3; i++)
+                // {
+                //     stokenizer.nextToken();
+                //     token = stokenizer.getToken();
+                //     p[i] = strutil::parseString<float>(token);
+                // }
+                for (int i = 0; i < 6; i++) 
                 {
                     stokenizer.nextToken();
                     token = stokenizer.getToken();
-                    p[i] = strutil::parseString<float>(token);
+                    if ( i < 3 )
+                    {
+                        p[i] = strutil::parseString<float>(token);
+                    }
+                    else{
+                        c[i-3] = strutil::parseString<float>(token);
+                    }
                 }
 
                 CVertex *v = createVertex(vid);
                 v->point() = p;
+                v->rgb() = c;  // add color point
                 vid++;
                 continue;
             }

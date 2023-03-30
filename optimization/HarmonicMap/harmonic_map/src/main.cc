@@ -1,10 +1,11 @@
 /*!
  * author: Dan Billmann
- * coauthor: David Xianfeng Gu (lines 24 - 91)
+ * advisor: David Xianfeng Gu
  * date: March 27, 2023
  *
  */
 #include <cstring>
+#include <string.h>
 #include <math.h>
 #include <iostream>
 #include <stdio.h>
@@ -93,21 +94,18 @@ void computeNormal(CHarmonicMapMesh *pMesh)
 
 const char *append_name(const char *fpath_name)
 {
-    const char *dot_pos = strrchr(fpath_name, '.');
-    if (dot_pos != nullptr)
-    {
+    const char* dot_pos = strrchr(fpath_name, '.');
+    if (dot_pos != nullptr) {
         size_t len_prefix = dot_pos - fpath_name;
         size_t len_suffix = strlen(dot_pos);
         size_t len_new = len_prefix + strlen("_uv_coordinates.") + len_suffix + 1;
-        char *new_fpath_name = new char[len_new];
-        strncpy_s(new_fpath_name, len_new, fpath_name, len_prefix);
+        char* new_fpath_name = new char[len_new];
+        strncpy(new_fpath_name, fpath_name, len_prefix);
         new_fpath_name[len_prefix] = '\0';
-        strcat_s(new_fpath_name, len_new, "_uv_coordinates");
-        strcat_s(new_fpath_name, len_new, dot_pos);
+        strcat(new_fpath_name, "_uv_coordinates");
+        strcat(new_fpath_name, dot_pos);
         return new_fpath_name;
-    }
-    else
-    {
+    } else {
         return fpath_name;
     }
 }
