@@ -4,6 +4,7 @@
  * date: March 27, 2023
  *
  */
+#include <complex>
 #include <cstring>
 #include <string.h>
 #include <math.h>
@@ -13,6 +14,8 @@
 
 #include "HarmonicMap.h"
 #include "HarmonicMapMesh.h"
+
+typedef std::complex<double> Complex;
 
 using namespace MeshLib;
 
@@ -189,6 +192,120 @@ void write_uv(CHarmonicMapMesh pMesh, const char *output)
     zzz.close();
 }
 
+
+Complex* calculate_mobius_coefficients(Complex z1, Complex z2, Complex z3, Complex w1, Complex w2, Complex w3) {
+    /*!
+    Take in the two sets of 3 points () and () and return the imaginary coefficients
+    (a, b, c, d) for the function 
+
+    Array indices are returned in alphabetical order s.t. imag_coeff[0] = a, imag_coeff[3] = d;
+    */
+    Complex* imag_coeff = new Complex[4];
+
+    // Algebraic solutions of the imaginary coefficients
+    
+    // a
+    imag_coeff[0] = (w1 * (z2 - z3) + w2 * (z3 - z1) + w3 * (z1 - z2)) / ((z1 - z2) * (z3 - z1));
+    
+    // b
+    imag_coeff[1] = (w1 * z2 * (z3 - z1) + w2 * z3 *(z1-z2) + w3*z1*(z2-z3)) / ((z1-z2)*(z3-z1));
+    
+    // c
+    imag_coeff[2] = (w1*(z2*z3-z3*z1) + w2*(z3*z1-z1*z2) + w3*(z1*z2-z2*z3)) / ((z1-z2)*(z3-z1));
+    
+    // d
+    imag_coeff[3] = (w1*z2*z3*(z2-z3) + w2*z3*z1*(z3-z1) + w3*z1*z2*(z1-z2)) / ((z1-z2)*(z3-z1));
+
+    return imag_coeff; 
+}
+
+void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int left_eye_id, int right_eye_id) {
+    /*!
+    Compute the Möbius transform using the nosetip (1), left eye corner (2), and 
+    right eye corner (3) as the fixed points on a 2D disc.
+
+    Abbreviations: 
+    ---------------
+    nosetip -> "nt"
+    left eye corner -> "le"
+    right eye corner -> "re"
+    Möbius -> "mb"
+
+    map (z1, z2, z3) |-> (w1, w2, w3) s.t :
+     - w1 = 0+0i, 
+     - w2 = -.2+.2i
+     - w3 = .2+.2i
+    
+    0. Acccess the vertices to find the vertices at the input IDs.
+    1. Convert the uv coordinates of the Vertex to a complex type
+        e.g uv[0] = 0, uv[1] = 1
+        complex_uv = 0+1i
+    2. Fix the new point locations
+    3. Build the Möbius transform
+    4. Iterate through every Vertex
+    5. Convert the point to a complex value
+    6. Compute the Möbius values.
+    7. Convert the computed w from the complex plane to the coordinate plane
+    8. Assign the computed point to the vertex
+    */
+    // 0. Acccess the vertices to find the vertices at the input IDs.
+    CPoint2 uv_nt = pmesh->idVertex(nosetip_id)->uv();
+    CPoint2 uv_le = pmesh->idVertex(left_eye_id)->uv();
+    CPoint2 uv_re = pmesh->idVertex(right_eye_id)->uv();
+
+    // 1. Convert the uv coordinates of the Vertex to a complex type.
+    Complex i_nt{uv_nt[0], uv_nt[1]};  // z1
+    Complex i_le{uv_le[0], uv_le[1]};  // z2
+    Complex i_re{uv_re[0], uv_re[1]};  // z3
+    
+    // 2. Fix the new point locations
+    Complex mb_nt{0.0, 0.0};  // w1
+    Complex mb_le{-0.2, 0.2};  // w2
+    Complex mb_re{0.2, 0.2};  // w3
+    
+    // 3. build the Möbius transform equation (z1, z2, z3) |-> (w1, w2, w3)
+    printf("Calculating Möbius coefficients...")
+    Complex* coeff = calculate_mobius_coefficients(i_nt, i_le, i_re, mb_nt, mb_le, mb_re);
+    const Complex a = coeff[0];
+    const Complex b = coeff[1];
+    const Complex c = coeff[2];
+    const Complex d = coeff[3];
+    printf("Möbius coefficients set.")
+
+    printf("Iterating through mesh, recomputing Texture coordinates...")
+    // 4. Iterate through the Vertices
+    for (CHarmonicMapMesh::MeshVertexIterator viter(pmesh); !viter.end(); ++viter)
+    {
+        CHarmonicMapVertex *vertex = *viter;
+
+        // 5. Convert the point to a complex value
+        Complex z{vertex->uv()[0], vertex->uv()[1]};
+
+        /*! 6. Compute the Möbius values. 
+            
+            w = (az + b) / (cz + d)
+
+            Author's note: I abhor single-character variables, 
+            but I will make an exception to keep in line with 
+            the mathematical notation.
+
+        */ 
+        Complex w = (a*z + b) / (c*z + d);
+
+        // 7. Convert the computed w from the complex plane to the coordinate plane
+        CPoint2 coord_point;
+        coord_point[0] = w.real();
+        coord_point[1] = w.imag();
+
+        // 8. Assign the computed point to the vertex
+        vertex->uv() = coord_point;
+    }
+    printf("Texture coordinate reassignment complete.")
+
+    return;
+}
+
+
 int main(int argc, char *argv[])
 /*! Run this as
 
@@ -235,8 +352,7 @@ int main(int argc, char *argv[])
     /*!
     Compute the Harmonic Map
     */
-    printf("Computing iterative map...\n");
-    // g_mapper.iterative_map(0.005);
+    printf("Computing harmonic map...\n");
     g_mapper.map();
     printf("Computation complete.\n");
 
@@ -258,13 +374,28 @@ int main(int argc, char *argv[])
     }
     printf("\nWrote to %s.\n", argv[2]);
 
+    /*------- CONSTRUCTION ZONE -------
+    Mobius transform
+
+    I'm not sure how to acquire and pass in the nosetip, left eye, or right eye
+    indices yet. It might be worth doing an configuration-driven pipeline. As
+    usual. Typical Data Engineering behavior.
+    */
+    int id_nt; // nosetip vertex ID
+    int id_le;  // left eye vertex ID
+    int id_re;  // right eye vertex ID
+    printf("Computing Möbius Transformation...")
+    compute_uv_mobius_transform(&g_mesh, id_nt, id_le, id_re);
+    printf("Computed Möbius Transformation.")
+
+    
     /*!
     Write uv coordinates out as .obj file
     */
-    printf("Attempting to write UV coordinates to file...");
+    printf("Attempting to write texture coordinates to file...");
     const char *uv_name = append_name(argv[2]);
     write_uv(g_mesh, uv_name);
-    printf("Wrote UV coordinates to file...");
+    printf("Wrote texture coordinates to file...");
     delete[] uv_name;
 
     return EXIT_SUCCESS;
