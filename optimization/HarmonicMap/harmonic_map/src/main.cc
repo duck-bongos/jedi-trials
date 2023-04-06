@@ -14,6 +14,7 @@
 
 #include "HarmonicMap.h"
 #include "HarmonicMapMesh.h"
+// #include <yaml-cpp/yaml.h>
 
 typedef std::complex<double> Complex;
 
@@ -208,7 +209,7 @@ Complex* calculate_mobius_coefficients(Complex z1, Complex z2, Complex z3, Compl
     imag_coeff[0] = (w1 * (z2 - z3) + w2 * (z3 - z1) + w3 * (z1 - z2)) / ((z1 - z2) * (z3 - z1));
     
     // b
-    imag_coeff[1] = (w1 * z2 * (z3 - z1) + w2 * z3 *(z1-z2) + w3*z1*(z2-z3)) / ((z1-z2)*(z3-z1));
+    imag_coeff[1] = (w1*z2* (z3 - z1) + w2 * z3 *(z1-z2) + w3*z1*(z2-z3)) / ((z1-z2)*(z3-z1));
     
     // c
     imag_coeff[2] = (w1*(z2*z3-z3*z1) + w2*(z3*z1-z1*z2) + w3*(z1*z2-z2*z3)) / ((z1-z2)*(z3-z1));
@@ -217,6 +218,12 @@ Complex* calculate_mobius_coefficients(Complex z1, Complex z2, Complex z3, Compl
     imag_coeff[3] = (w1*z2*z3*(z2-z3) + w2*z3*z1*(z3-z1) + w3*z1*z2*(z1-z2)) / ((z1-z2)*(z3-z1));
 
     return imag_coeff; 
+}
+
+Complex mobius_transform(Complex z, Complex origin, double theta) {
+    Complex i(0, 1);
+    Complex z_ = std::exp(i*theta) * ((z - origin)/(1.0 - (std::conj(origin) * z)));
+    return z_;
 }
 
 void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int left_eye_id, int right_eye_id) {
@@ -248,6 +255,7 @@ void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int le
     7. Convert the computed w from the complex plane to the coordinate plane
     8. Assign the computed point to the vertex
     */
+    printf("Setting constants for Möbius transform...\n");
     // 0. Acccess the vertices to find the vertices at the input IDs.
     CPoint2 uv_nt = pmesh->idVertex(nosetip_id)->uv();
     CPoint2 uv_le = pmesh->idVertex(left_eye_id)->uv();
@@ -260,19 +268,27 @@ void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int le
     
     // 2. Fix the new point locations
     Complex mb_nt{0.0, 0.0};  // w1
-    Complex mb_le{-0.2, 0.2};  // w2
-    Complex mb_re{0.2, 0.2};  // w3
+    // Complex mb_le{-0.2, 0.2};  // w2 
+    // Complex mb_re{0.2, 0.2};  // w3
+
+    // w1 = (z2-z1)  (1-conj(z1)*z2)
+    Complex mb_le = (i_le - i_nt) / (1.0 - std::conj(i_nt)*i_le);
+    // w2 = (z3 - z1) / (1-conj(z1)*z3)
+    Complex mb_re = (i_re - i_nt) / (1.0 - std::conj(i_nt)*i_re);
+    double theta = atan(std::imag(mb_re - mb_le)/std::real(mb_le - mb_re));
+
+    // construct equation
     
     // 3. build the Möbius transform equation (z1, z2, z3) |-> (w1, w2, w3)
-    printf("Calculating Möbius coefficients...")
-    Complex* coeff = calculate_mobius_coefficients(i_nt, i_le, i_re, mb_nt, mb_le, mb_re);
-    const Complex a = coeff[0];
-    const Complex b = coeff[1];
-    const Complex c = coeff[2];
-    const Complex d = coeff[3];
-    printf("Möbius coefficients set.")
-
-    printf("Iterating through mesh, recomputing Texture coordinates...")
+    // printf("Calculating Möbius coefficients...\n");
+    // Complex* coeff = calculate_mobius_coefficients(i_nt, i_le, i_re, mb_nt, mb_le, mb_re);
+    // const Complex a = coeff[0];
+    // const Complex b = coeff[1];
+    // const Complex c = coeff[2];
+    // const Complex d = coeff[3];
+    // printf("Möbius coefficients set.\n");
+    printf("Set constants for Möbius transform.\n");
+    printf("Iterating through mesh, recomputing Texture coordinates...\n");
     // 4. Iterate through the Vertices
     for (CHarmonicMapMesh::MeshVertexIterator viter(pmesh); !viter.end(); ++viter)
     {
@@ -290,8 +306,8 @@ void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int le
             the mathematical notation.
 
         */ 
-        Complex w = (a*z + b) / (c*z + d);
-
+        Complex w = mobius_transform(z, i_nt, theta);
+        std::cout << "------------------------\n" << "W: " << w.real() << " " << w.imag() << "\nZ: " << z.real() << " " << z.imag() << "\n" << std::endl;
         // 7. Convert the computed w from the complex plane to the coordinate plane
         CPoint2 coord_point;
         coord_point[0] = w.real();
@@ -300,7 +316,7 @@ void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int le
         // 8. Assign the computed point to the vertex
         vertex->uv() = coord_point;
     }
-    printf("Texture coordinate reassignment complete.")
+    printf("Texture coordinate reassignment complete.\n");
 
     return;
 }
@@ -373,6 +389,15 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     printf("\nWrote to %s.\n", argv[2]);
+    
+    /*!
+    Write uv coordinates out as .obj file
+    */
+    printf("Attempting to write texture coordinates to file...\n");
+    const char *uv_name = append_name(argv[2]);
+    write_uv(g_mesh, uv_name);
+    printf("Wrote texture coordinates to file...\n");
+    delete[] uv_name;
 
     /*------- CONSTRUCTION ZONE -------
     Mobius transform
@@ -380,23 +405,19 @@ int main(int argc, char *argv[])
     I'm not sure how to acquire and pass in the nosetip, left eye, or right eye
     indices yet. It might be worth doing an configuration-driven pipeline. As
     usual. Typical Data Engineering behavior.
+        ------- CONSTRUCTION ZONE -------
     */
-    int id_nt; // nosetip vertex ID
-    int id_le;  // left eye vertex ID
-    int id_re;  // right eye vertex ID
-    printf("Computing Möbius Transformation...")
-    compute_uv_mobius_transform(&g_mesh, id_nt, id_le, id_re);
-    printf("Computed Möbius Transformation.")
-
     
-    /*!
-    Write uv coordinates out as .obj file
-    */
-    printf("Attempting to write texture coordinates to file...");
-    const char *uv_name = append_name(argv[2]);
-    write_uv(g_mesh, uv_name);
-    printf("Wrote texture coordinates to file...");
-    delete[] uv_name;
+    int id_nt = 13257; // nosetip vertex ID, hard-coded
+    int id_le = 7517;  // left eye vertex ID, hard-coded
+    int id_re = 7769;  // right eye vertex ID, hard-coded
+    printf("Computing Möbius Transformation...\n");
+    compute_uv_mobius_transform(&g_mesh, id_nt, id_le, id_re);
+    printf("Computed Möbius Transformation.\n");
+
+    printf("Attempting to write texture coordinates to file...\n");
+    write_uv(g_mesh, "../../data/optimized/mobius_mapped_target.obj");
+    printf("Wrote texture coordinates to file...\n");
 
     return EXIT_SUCCESS;
 }

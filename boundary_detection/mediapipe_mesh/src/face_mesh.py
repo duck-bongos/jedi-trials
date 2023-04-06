@@ -319,7 +319,6 @@ def run_face_mesh_pipeline(
         **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
     )
     # !!!!!!
-
     things = []
     for idx, (row, col) in enumerate(texture):
         # switch column and row

@@ -17,6 +17,5 @@ if (NOT MeshLib_FOUND)
 endif (NOT MeshLib_FOUND)
 
 
-
 # Add module
 add_subdirectory("harmonic_map")
