@@ -5,21 +5,19 @@
     Module to work with mediapipe face meshes.
 """
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import cv2
 import mediapipe as mp
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
 import numpy as np
+from scipy.cluster.vq import kmeans2
 from shapely import Polygon
 
 from .utils import (
-    preprocess_pixels,
-    preprocess_voxels,
-    process_obj_file,
+    get_keypoint_fpath,
     write_image,
-    write_object,
 )
 
 # mediapipe utils
@@ -30,6 +28,13 @@ mp_face_mesh = mp.solutions.face_mesh
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=1, circle_radius=2)
 MASK_COLOR = [255, 255, 255]
+
+
+def add_keypoint_voxels(keypoints, voxels: np.ndarray):
+    for k, v in keypoints.items():
+        vx = voxels[v["index"]]
+        keypoints[k]["voxel"] = vx
+    return keypoints
 
 
 def build_mask_from_boundary(
@@ -88,10 +93,25 @@ def compute_face_mesh(img: np.ndarray):
             return mark
 
 
+def compute_keypoints(
+    img: np.ndarray,
+    landmarks: np.ndarray,
+    landmark_spec=None,
+):
+    annotated_image = img.copy()
+    mp_drawing.draw_landmarks(
+        image=annotated_image,
+        landmark_list=landmarks,
+        connections=None,
+        landmark_drawing_spec=landmark_spec,
+    )
+
+    return annotated_image, landmark_spec.color
+
+
 def compute_mesh_and_boundary(
     img: np.ndarray,
     landmarks: np.ndarray,
-    fpath: str,
     connections=None,
     boundary_spec=None,
 ) -> None:
@@ -115,8 +135,8 @@ def compute_mesh_and_boundary(
         connection_drawing_spec=boundary_spec,
     )
 
-    if not write_image(fpath, annotated_image, **{"prefix": "boundary"}):
-        print("WARNING: No image written.")
+    # if not write_image(fpath, annotated_image, **{"prefix": "boundary"}):
+    #    print("WARNING: No image written.")
 
     return annotated_image, boundary_spec.color
 
@@ -168,10 +188,55 @@ def get_boundary_idx():
     face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
     """
     boundary = []
-    with open("data/boundary.txt") as bound:
+    with open("mediapipe_constants/boundary.txt") as bound:
         boundary = [int(x.strip()) for x in bound.readlines()]
 
     return boundary
+
+
+def get_keypoint_indices(img: np.ndarray, color=Tuple[int, int, int]):
+    idxs = get_color_indices_from_img(img, color)
+
+    centroid, _ = kmeans2(idxs.astype(float), k=3, seed=0)
+    # for i in range(3):
+    #     print(centroid[i][0] * centroid[i][1])
+    # 933816
+    # 816185
+    # 654454
+
+    return centroid.astype(int), idxs
+
+
+def find_keypoints(landmarks) -> None:
+    """Get the coordinates of the 3 key points.
+
+    See get_keypoint_idx() for more information.
+    """
+    idxs = get_keypoint_idx()
+    marks = NormalizedLandmarkList()
+
+    kp = {}  # ?
+    for k, v in idxs.items():
+        marks.landmark.append(landmarks.landmark[v])
+        kp[k] = landmarks.landmark[v]  # ?
+    return marks
+
+
+def find_keypoint_indices(textures, keypoint_idxs):
+    right_eye = ("right_eye", np.max(keypoint_idxs, axis=0))
+    left_eye = ("left_eye", np.min(keypoint_idxs, axis=0))
+    nosetip = ("nosetip", np.median(keypoint_idxs, axis=0))
+
+    points = [right_eye, left_eye, nosetip]
+
+    kp = {}
+    for name, (row, col) in points:
+        b = [row, col]
+        aa = np.apply_along_axis(np.linalg.norm, 1, textures - b)
+        idx = np.argmin(aa)
+        kp[name] = {"index": idx}
+
+    return kp
 
 
 def get_keypoint_idx():
@@ -186,7 +251,7 @@ def get_keypoint_idx():
     tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
     face-landmarks-detection/mesh_map.jpg
     """
-    keypoints = {"left_eye_corner": 133, "right_eye_corner": 362, "nosetip": 1}
+    keypoints = {"left_eye_corner": 173, "right_eye_corner": 398, "nosetip": 1}
 
     return keypoints
 
@@ -243,118 +308,4 @@ def show_polygon_overlay(
     cv2.imshow("Polygon", overlay)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    return
-
-
-def run_face_mesh_pipeline(
-    fpath_img: Path, fpath_obj: Path, display=False
-) -> Tuple[int, int]:
-    # Convert the BGR image to RGB before processing?
-    fpath_img_ = fpath_img.resolve().as_posix()
-    img = cv2.imread(fpath_img_)
-    img = img.copy()
-
-    # !!!!!! UNDER CONSTRUCTION - Face shifting
-    """nf = img.copy()
-    shift_nf = center_face(nf)
-
-    write_image(
-        fpath_img,
-        shift_nf,
-        **{"prefix": "shifted_face", "extension": "png"},
-    )"""
-    # !!!!! CONSTRUCTION ZONE ENDS !!!!! #
-
-    # process the file
-    process_obj_file(fpath_obj)
-
-    centered_voxels, fpath_centered_voxels = preprocess_voxels(
-        fpath_obj, center=True, trim_z=0.875
-    )
-    centered_texture, fpath_centered_texture = preprocess_pixels(fpath_obj)
-
-    landmarks = compute_face_mesh(img)
-    # mesh_2d = mesh.copy()  # <-- I have to think about this still
-    # mesh_2d[:, 2] = 0  # <-- I have to think about this still
-
-    # read from static list
-    boundary_idx: List[int] = get_boundary_idx()
-    boundary_contour: List[Tuple[int]] = compute_boundary_edges(boundary=boundary_idx)
-
-    annotated_img, color = compute_mesh_and_boundary(
-        img,
-        landmarks,
-        fpath_img,
-        connections=boundary_contour,
-        boundary_spec=BOUNDARY_SPEC,
-    )
-
-    boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
-
-    # write out mask
-    mask = build_mask_from_boundary(annotated_img, boundary)
-    """write_matrix(
-        fpath=fpath_img, matrix=mask, **{"prefix": "masked"}
-    )"""
-    # TODO: not cross-platform compatible
-    # write_image(fpath_img, mask, **{"prefix": "masked", "suffix": "matrix_img"})
-
-    # write out masked image
-    masked_img = (mask * img) / mask.max()
-    # write_image(
-    #     fpath=fpath_img, img=masked_img, **{"prefix": "masked", "suffix": "img"}
-    # )
-
-    fpath_texture = fpath_img
-    fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")
-    texture_read = np.loadtxt(fpath_texture.resolve().as_posix())
-    texture = texture_read.copy()
-
-    # List of points of the form (y, x)
-    texture[:, 0] *= img.shape[1]
-    texture[:, 1] *= img.shape[0]
-    texture = np.round(texture, 0).astype(int)
-
-    texture_img = np.zeros(img.shape)
-    for row, col in texture:
-        texture_img[col, row] = MASK_COLOR
-
-    # write_image(
-    #     fpath_img,
-    #     texture_img,
-    #     **{"prefix": "object_mask", "extension": "png"},
-    # )
-
-    # now merge with the mask, divide by 255 to return to 0-255 normal values.
-    constrained_face = (texture_img * mask) // 255
-    # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt",
-    # write_image(
-    #     fpath_img,
-    #     constrained_face,
-    #     **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
-    # )
-    # !!!!!!
-    things = []
-    for idx, (row, col) in enumerate(texture):
-        # switch column and row
-        if all(constrained_face[col, row] == MASK_COLOR):
-            things.append(idx)
-
-    # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt"
-    idxs = np.array(things)
-    fpath_voxel = fpath_img
-    fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
-
-    write_object(
-        fpath_out=fpath_img,
-        fpath_obj=fpath_obj,
-        index=idxs,
-        texture=centered_texture,
-        vertices=centered_voxels,
-    )
-    #####################################
-
-    if display:
-        show_polygon_overlay(img=img, landmarks=boundary)
-
     return

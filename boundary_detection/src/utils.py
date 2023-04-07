@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from box import Box
 import cv2
@@ -9,16 +9,7 @@ import numpy as np
 
 
 def get_boundary_fpath(fname: Path, **kwargs) -> str:
-    prefix = kwargs.get("prefix", "")
-    suffix = kwargs.get("suffix", "")
     extension = kwargs.get("extension", "")
-
-    """    
-    dir = fname.stem
-    name = fname.stem if prefix == "" else prefix + "_" + fname.stem
-    name = name if suffix == "" else name + "_" + suffix
-    """
-
     fpath = fname.parent
     new_path = fpath / "boundary" / fname.name
 
@@ -31,34 +22,44 @@ def get_boundary_fpath(fname: Path, **kwargs) -> str:
     return new_path.as_posix()
 
 
+def get_keypoint_fpath(fname: Path) -> str:
+    extension = ".txt"
+    data_dir = fname.parent
+    path_ = data_dir / "keypoints" / fname.stem
+
+    new_path = path_.with_suffix(extension)
+
+    return new_path.as_posix()
+
+
 def parse_cli() -> ArgumentParser:
     ap = ArgumentParser()
     ap.add_argument(
         "--source_img",
         "-s",
         dest="source_img",
-        default="../../data/source.png",
+        default="../data/source.png",
         required=False,
     )
     ap.add_argument(
         "--source_obj",
         "-so",
         dest="source_obj",
-        default="../../data/source.obj",
+        default="../data/source.obj",
         required=False,
     )
     ap.add_argument(
         "--target_img",
         "-t",
         dest="target_img",
-        default="../../data/target.png",
+        default="../data/target.png",
         required=False,
     )
     ap.add_argument(
         "--target_obj",
         "-to",
         dest="target_obj",
-        default="../../data/target.obj",
+        default="../data/target.obj",
         required=False,
     )
     args = ap.parse_args()
@@ -207,6 +208,26 @@ def process_obj_file(in_fpath: Path):
                     three.write(f"{line[3:]}")
 
 
+def update_vertex_indices(face_string: str, mapping: Dict[int, int]) -> str:
+    """Update the vertex indices to adjust for points I filtered out.
+
+    Args:
+        face_string (str): A string in the form `f int1/int1 int2/int2 int3/int3`.
+        mapping (Dict[int, int]): A mapping between a vertex's index in the input file and output file.
+
+    Returns:
+        (str) A string in the form `f int1/int1 int2/int2 int3/int3`.
+
+    """
+    updated_idxs = "f "
+    for i, idx in enumerate(re.split("f| |/", face_string[2:])):
+        if i % 2 == 0:
+            updated_idxs += str(mapping[int(idx)]) + "/" + str(mapping[int(idx)]) + " "
+
+    updated_idxs = updated_idxs[:-1]
+    return updated_idxs + "\n"
+
+
 def write_image(fpath: Path, img: np.ndarray, **kwargs) -> bool:
     """Save image as a png using cv2.imwrite."""
     # TODO: https://github.com/duck-bongos/jedi-trials/issues/1
@@ -227,24 +248,19 @@ def write_matrix(fpath: Path, matrix: np.ndarray, **kwargs) -> None:
     np.save(fpath_matrix, matrix)
 
 
-def update_vertex_indices(face_string: str, mapping: Dict[int, int]) -> str:
-    """Update the vertex indices to adjust for points I filtered out.
+def write_keypoints(
+    fpath_out: Path, keypoints: Dict[str, Dict[str, Union[int, np.ndarray]]]
+):
+    fpath_keypoints = get_keypoint_fpath(fpath_out)
+    with open(fpath_keypoints, "w") as fkp:
+        # Write the header
+        fkp.write("Name |\tIndex | Voxels\t\n")
 
-    Args:
-        face_string (str): A string in the form `f int1/int1 int2/int2 int3/int3`.
-        mapping (Dict[int, int]): A mapping between a vertex's index in the input file and output file.
-
-    Returns:
-        (str) A string in the form `f int1/int1 int2/int2 int3/int3`.
-
-    """
-    updated_idxs = "f "
-    for i, idx in enumerate(re.split("f| |/", face_string[2:])):
-        if i % 2 == 0:
-            updated_idxs += str(mapping[int(idx)]) + "/" + str(mapping[int(idx)]) + " "
-
-    updated_idxs = updated_idxs[:-1]
-    return updated_idxs + "\n"
+        # Write the points
+        for k, v in keypoints.items():
+            idx = v["index"]
+            vox = v["voxel"]
+            fkp.write(f"{k} | {idx} | {' '.join([str(v) for v in vox])}\n")
 
 
 def write_object(

@@ -7,7 +7,7 @@
 """
 from pathlib import Path
 
-from src.face_mesh import run_face_mesh_pipeline
+from src.pipeline import run_face_mesh_pipeline
 from src.utils import parse_cli
 
 
