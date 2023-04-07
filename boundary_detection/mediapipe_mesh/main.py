@@ -25,3 +25,5 @@ if __name__ == "__main__":
     run_face_mesh_pipeline(
         fpath_img=fpath_target_img, fpath_obj=fpath_target_obj, display=False
     )
+
+    print("Boundary detection complete.")

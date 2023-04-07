@@ -174,6 +174,23 @@ def get_boundary_idx():
     return boundary
 
 
+def get_keypoint_idx():
+    """Get keypoint IDs
+
+    https://github.com/tensorflow/
+    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
+    face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
+
+    Combined with this image:
+    https://github.com/tensorflow/
+    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
+    face-landmarks-detection/mesh_map.jpg
+    """
+    keypoints = {"left_eye_corner": 133, "right_eye_corner": 362, "nosetip": 1}
+
+    return keypoints
+
+
 def get_color_indices_from_img(
     img: np.ndarray, color: Tuple[int, int, int], two_d_only: bool = False
 ):
@@ -280,13 +297,13 @@ def run_face_mesh_pipeline(
         fpath=fpath_img, matrix=mask, **{"prefix": "masked"}
     )"""
     # TODO: not cross-platform compatible
-    write_image(fpath_img, mask, **{"prefix": "masked", "suffix": "matrix_img"})
+    # write_image(fpath_img, mask, **{"prefix": "masked", "suffix": "matrix_img"})
 
     # write out masked image
     masked_img = (mask * img) / mask.max()
-    write_image(
-        fpath=fpath_img, img=masked_img, **{"prefix": "masked", "suffix": "img"}
-    )
+    # write_image(
+    #     fpath=fpath_img, img=masked_img, **{"prefix": "masked", "suffix": "img"}
+    # )
 
     fpath_texture = fpath_img
     fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")
@@ -302,22 +319,20 @@ def run_face_mesh_pipeline(
     for row, col in texture:
         texture_img[col, row] = MASK_COLOR
 
-    write_image(
-        fpath_img,
-        texture_img,
-        **{"prefix": "object_mask", "extension": "png"},
-    )
+    # write_image(
+    #     fpath_img,
+    #     texture_img,
+    #     **{"prefix": "object_mask", "extension": "png"},
+    # )
 
-    # now merge with the mask
-    constrained_face = (
-        texture_img * mask
-    ) // 255  # divide by 255 to return to 0-255 normal values.
+    # now merge with the mask, divide by 255 to return to 0-255 normal values.
+    constrained_face = (texture_img * mask) // 255
     # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices2d.txt",
-    write_image(
-        fpath_img,
-        constrained_face,
-        **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
-    )
+    # write_image(
+    #     fpath_img,
+    #     constrained_face,
+    #     **{"prefix": "object_mask", "suffix": "merge_test", "extension": "png"},
+    # )
     # !!!!!!
     things = []
     for idx, (row, col) in enumerate(texture):
@@ -329,7 +344,6 @@ def run_face_mesh_pipeline(
     idxs = np.array(things)
     fpath_voxel = fpath_img
     fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
-    voxels_read = np.loadtxt(fpath_voxel.resolve().as_posix())
 
     write_object(
         fpath_out=fpath_img,

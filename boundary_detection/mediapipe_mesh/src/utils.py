@@ -8,17 +8,19 @@ import cv2
 import numpy as np
 
 
-def get_annotated_fpath(fname: Path, **kwargs) -> str:
+def get_boundary_fpath(fname: Path, **kwargs) -> str:
     prefix = kwargs.get("prefix", "")
     suffix = kwargs.get("suffix", "")
     extension = kwargs.get("extension", "")
 
+    """    
     dir = fname.stem
     name = fname.stem if prefix == "" else prefix + "_" + fname.stem
     name = name if suffix == "" else name + "_" + suffix
+    """
 
-    fpath = fname.parent.parent
-    new_path = fpath / "annotated" / dir / name
+    fpath = fname.parent
+    new_path = fpath / "boundary" / fname.name
 
     if extension != "":
         if "." in extension:
@@ -35,28 +37,28 @@ def parse_cli() -> ArgumentParser:
         "--source_img",
         "-s",
         dest="source_img",
-        default="../../data/source/source.png",
+        default="../../data/source.png",
         required=False,
     )
     ap.add_argument(
         "--source_obj",
         "-so",
         dest="source_obj",
-        default="../../data/source/source.obj",
+        default="../../data/source.obj",
         required=False,
     )
     ap.add_argument(
         "--target_img",
         "-t",
         dest="target_img",
-        default="../../data/target/target.png",
+        default="../../data/target.png",
         required=False,
     )
     ap.add_argument(
         "--target_obj",
         "-to",
         dest="target_obj",
-        default="../../data/target/target.obj",
+        default="../../data/target.obj",
         required=False,
     )
     args = ap.parse_args()
@@ -211,7 +213,7 @@ def write_image(fpath: Path, img: np.ndarray, **kwargs) -> bool:
     d = {"suffix": "img", "extension": "png"}
     d.update(kwargs)
 
-    fpath_img = get_annotated_fpath(fpath, **d)
+    fpath_img = get_boundary_fpath(fpath, **d)
     return cv2.imwrite(fpath_img, img)
 
 
@@ -221,7 +223,7 @@ def write_matrix(fpath: Path, matrix: np.ndarray, **kwargs) -> None:
     d = {"suffix": "matrix"}
     d.update(kwargs)
 
-    fpath_matrix = get_annotated_fpath(fpath, **d)
+    fpath_matrix = get_boundary_fpath(fpath, **d)
     np.save(fpath_matrix, matrix)
 
 
@@ -260,7 +262,7 @@ def write_object(
 
     get_vertex_indices = lambda a: set(int(i) for i in re.split("f| |/", a[2:]))
 
-    fpath_selected = get_annotated_fpath(fpath_out, **d)
+    fpath_selected = get_boundary_fpath(fpath_out, **d)
 
     with open(fpath_selected, "w") as s:
         # TODO: Should I include a 'material' .mtl file in the header?

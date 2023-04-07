@@ -1,0 +1,22 @@
+---
+# pipeline direction:
+# data -> boundary -> collapsed -> mapped -> transformed -> registration -> visualization
+data
+	source_image: "data/source.png"
+	source_object: "data/source.obj"
+	target_image: "data/target.png"
+	target_object: "data/target.obj"
+	boundary: "data/boundary/"
+	keypoints: "data/keypoints/"
+	collapsed: "data/collapsed/"
+	mapped: "data/mapped/"
+	transformed: "data/transformed/"
+	registration: "data/registration/"
+	visualization: "data/viz"
+
+boundary
+	build_env: True
+
+qecd
+	targetfacenum: 50000
+
