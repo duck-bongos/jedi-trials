@@ -1,0 +1,5 @@
+/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/HarmonicMap/build/CMakeFiles/edit_cache.dir
+/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/HarmonicMap/build/CMakeFiles/rebuild_cache.dir
+/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/HarmonicMap/build/harmonic_map/CMakeFiles/map.dir
+/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/HarmonicMap/build/harmonic_map/CMakeFiles/edit_cache.dir
+/Users/dan/Dropbox/SBU/spring_2023/thesis/jedi-trials/HarmonicMap/build/harmonic_map/CMakeFiles/rebuild_cache.dir

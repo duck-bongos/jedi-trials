@@ -1,10 +1,10 @@
 # starting from top level directory
 
 # clean the data/optimized directory
-rm -rf data/optimized/*
+rm -rf data/mapped/*
 
 # clean the build and bin
-cd optimization/HarmonicMap/
+cd HarmonicMap/
 
 echo "removing ./bin contents..."
 rm -rf bin/*
@@ -15,5 +15,5 @@ rm -rf build/*
 echo "removed ./build contents..."
 
 
-cd ../..
+cd ..
 echo "Returned to $PWD"

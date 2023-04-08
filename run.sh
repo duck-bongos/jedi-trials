@@ -10,8 +10,20 @@ chmod -R 755 scripts
 # detect the boundary
 ./scripts/detect_boundary.sh
 
-# detect the mapping
+# collapse the edges
+./scripts/qecd.sh
+
+# detect the mapping & mobius transform
 ./scripts/run_harmonic_map.sh
+
+# compute the mobius transform
+# ./scripts/mobius.sh
+
+# compute the non rigid registration
+# ./scripts/nrr.sh
+
+# visualization
+
 
 echo -e "\n----------------------------------------"
 echo -e "Run complete!"

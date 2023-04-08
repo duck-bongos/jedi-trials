@@ -78,7 +78,7 @@ def run_face_mesh_pipeline(
     )
 
     # QUCK CHECK
-    cv2.imwrite("keypoint.png", kp_img)
+    # cv2.imwrite("keypoint.png", kp_img)
 
     # grab the key point indices
     kp_idx, all_idxs = get_keypoint_indices(kp_img, kp_color)
@@ -118,8 +118,7 @@ def run_face_mesh_pipeline(
     voxel_read = np.loadtxt(fpath_voxel.resolve().as_posix())
     voxels = voxel_read.copy()
 
-    kpv = add_keypoint_voxels(keypoint_idxs, voxels)
-
+    kpv = add_keypoint_voxels(keypoint_idxs, centered_voxels)
     write_keypoints(fpath_img, kpv)
 
     write_object(

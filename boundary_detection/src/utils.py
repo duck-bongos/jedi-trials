@@ -254,13 +254,12 @@ def write_keypoints(
     fpath_keypoints = get_keypoint_fpath(fpath_out)
     with open(fpath_keypoints, "w") as fkp:
         # Write the header
-        fkp.write("Name |\tIndex | Voxels\t\n")
+        fkp.write("Name | Voxels\n")
 
         # Write the points
         for k, v in keypoints.items():
-            idx = v["index"]
             vox = v["voxel"]
-            fkp.write(f"{k} | {idx} | {' '.join([str(v) for v in vox])}\n")
+            fkp.write(f"{k} | {' '.join([str(v) for v in vox])}\n")
 
 
 def write_object(

@@ -1,4 +1,4 @@
-cd optimization/HarmonicMap
+cd HarmonicMap
 
 # enter the build directory
 cd build
@@ -17,17 +17,21 @@ then
     exit 1
 fi
 
-# echo -e 'Mapping source...'
-bin/map ../../data/reduced/reduced_masked_source_object.obj ../../data/optimized/mapped_source.obj
+echo -e 'Mapping source...'
+bin/map ../data/collapsed/source.obj ../data/mapped/source.obj
+python3 hm.py ../data/mapped/source.obj
 # bin/map ../../data/source/source.obj ../../data/optimized/mapped_source.obj
 
 
-# echo -e 'Mapping target...'
-bin/map ../../data/reduced/reduced_masked_target_object.obj ../../data/optimized/mapped_target.obj
+echo -e 'Mapping target...'
+bin/map ../data/collapsed/target.obj ../data/mapped/target.obj
+python3 hm.py ../data/mapped/target.obj
 # bin/map ../../data/target/target.obj ../../data/optimized/mapped_target.obj
 
 # GNU Parallel
 # parallel --link bin/map ::: ../../data/annotated/source/masked_source_object.obj ../../data/source/source.obj ../../data/annotated/target/masked_target_object.obj ../../data/target/target.obj ::: ../../data/optimized/mapped_masked_source.obj ../../data/optimized/mapped_source.obj ../../data/optimized/mapped_masked_target.obj ../../data/optimized/mapped_target.obj
 
 # return to the top level directory
-cd ../..
+cd ..
+
+echo "Returned to $PWD"
