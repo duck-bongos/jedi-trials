@@ -19,7 +19,7 @@ from .face_mesh import (
     compute_face_mesh,
     compute_keypoints,
     compute_mesh_and_boundary,
-    find_keypoint_indices,
+    find_keypoint_texture_ids,
     get_boundary_idx,
     get_boundary_from_annotation,
     get_keypoint_indices,
@@ -91,6 +91,10 @@ def run_face_mesh_pipeline(
     texture_read = np.loadtxt(fpath_texture.resolve().as_posix())
     texture = texture_read.copy()
 
+    keypoint_texture_ids = find_keypoint_texture_ids(
+        kp_idx, texture=texture, shape=img.shape
+    )
+
     # List of points of the form (y, x)
     texture[:, 0] *= img.shape[1]
     texture[:, 1] *= img.shape[0]
@@ -109,16 +113,16 @@ def run_face_mesh_pipeline(
         if all(constrained_face[col, row] == MASK_COLOR):
             things.append(idx)
 
-    keypoint_idxs = find_keypoint_indices(texture, kp_idx)
+    # ? keypoint_idxs = find_keypoint_indices(texture, kp_idx)
 
     # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt"
     idxs = np.array(things)
-    fpath_voxel = fpath_img
-    fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
-    voxel_read = np.loadtxt(fpath_voxel.resolve().as_posix())
-    voxels = voxel_read.copy()
+    # fpath_voxel = fpath_img
+    # fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
+    # voxel_read = np.loadtxt(fpath_voxel.resolve().as_posix())
+    # voxels = voxel_read.copy()
 
-    kpv = add_keypoint_voxels(keypoint_idxs, centered_voxels)
+    kpv = add_keypoint_voxels(keypoint_texture_ids, centered_voxels)
     write_keypoints(fpath_img, kpv)
 
     write_object(

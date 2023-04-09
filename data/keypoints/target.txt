@@ -1,4 +1,3 @@
-Name | Vertex ID
-right_eye | 24439
-left_eye | 18237
-nosetip | 20593
+nosetip 14113
+left_eye 7464
+right_eye 8168

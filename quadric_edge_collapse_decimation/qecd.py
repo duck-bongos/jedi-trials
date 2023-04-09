@@ -54,10 +54,10 @@ def get_keypoint_file(fpath_obj: Path):
 def get_keypoints(fpath_obj: Path):
     keypoints = {}
     with open(get_keypoint_file(fpath_obj)) as kp:
-        lines = kp.readlines()[1:]
-        lines = [line.split(" | ") for line in lines]
+        lines = kp.readlines()
+        lines = [line.strip().split(" ") for line in lines]
         for l in lines:
-            keypoints[l[0]] = np.array([float(i) for i in l[1].strip().split(" ")])
+            keypoints[l[0]] = np.array([float(i) for i in l[1:]])
 
     return keypoints
 
@@ -81,9 +81,8 @@ def run_qecd(fpath_obj: Path, targetfacenum=50000) -> None:
 
 def write_keypoints(keypoints: Dict[str, Dict[str, int]], fpath_obj: Path):
     with open(get_keypoint_file(fpath_obj), "w") as kp:
-        kp.write(f"Name | Vertex ID\n")
         for k, v in keypoints.items():
-            kp.write(f"{k} | {v}\n")
+            kp.write(f"{k} {v}\n")
 
 
 if __name__ in "__main__":

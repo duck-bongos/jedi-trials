@@ -32,8 +32,8 @@ MASK_COLOR = [255, 255, 255]
 
 def add_keypoint_voxels(keypoints, voxels: np.ndarray):
     for k, v in keypoints.items():
-        vx = voxels[v["index"]]
-        keypoints[k]["voxel"] = vx
+        vx = voxels[v["idx"]]
+        keypoints[k]["xyz"] = np.round(vx, 5)
     return keypoints
 
 
@@ -222,21 +222,32 @@ def find_keypoints(landmarks) -> None:
     return marks
 
 
-def find_keypoint_indices(textures, keypoint_idxs):
-    right_eye = ("right_eye", np.max(keypoint_idxs, axis=0))
-    left_eye = ("left_eye", np.min(keypoint_idxs, axis=0))
-    nosetip = ("nosetip", np.median(keypoint_idxs, axis=0))
+def find_keypoint_texture_ids(
+    keypoint_idx: np.ndarray, texture: np.ndarray, shape: tuple
+):
+    """"""
+    kpi = np.zeros(keypoint_idx.shape)
+    kpi[:, 0] = keypoint_idx[:, 0] / shape[0]
+    kpi[:, 1] = keypoint_idx[:, 1] / shape[1]
 
-    points = [right_eye, left_eye, nosetip]
+    nt_idx = np.argmax(kpi[:, 0])
+    le_idx = np.argmin(kpi[:, 1])
+    re_idx = np.argmax(kpi[:, 1])
+    kpi[:, [0, 1]] = kpi[:, [1, 0]]
+    d = {}
+    d["nosetip"] = {}
+    d["left_eye"] = {}
+    d["right_eye"] = {}
+    d["nosetip"]["uv"] = kpi[nt_idx, :]
+    d["left_eye"]["uv"] = kpi[le_idx, :]
+    d["right_eye"]["uv"] = kpi[re_idx, :]
 
-    kp = {}
-    for name, (row, col) in points:
-        b = [row, col]
-        aa = np.apply_along_axis(np.linalg.norm, 1, textures - b)
-        idx = np.argmin(aa)
-        kp[name] = {"index": idx}
+    for k, v in d.items():
+        d[k]["idx"] = np.argmin(
+            np.apply_along_axis(np.linalg.norm, 1, texture - v["uv"])
+        )
 
-    return kp
+    return d
 
 
 def get_keypoint_idx():

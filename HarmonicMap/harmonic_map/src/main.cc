@@ -122,106 +122,103 @@ Complex* calculate_mobius_coefficients(Complex z1, Complex z2, Complex z3, Compl
     return imag_coeff; 
 }
 
-Complex mobius_transform(Complex z, Complex origin, double theta) {
-    Complex i(0, 1);
-    Complex z_ = std::exp(i*theta) * ((z - origin)/(1.0 - (std::conj(origin) * z)));
-    return z_;
-}
 
-void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int left_eye_id, int right_eye_id) {
-    /*!
-    Compute the Möbius transform using the nosetip (1), left eye corner (2), and 
-    right eye corner (3) as the fixed points on a 2D disc.
 
-    Abbreviations: 
-    ---------------
-    nosetip -> "nt"
-    left eye corner -> "le"
-    right eye corner -> "re"
-    Möbius -> "mb"
 
-    map (z1, z2, z3) |-> (w1, w2, w3) s.t :
-     - w1 = 0+0i, 
-     - w2 = -.2+.2i
-     - w3 = .2+.2i
+// void compute_uv_mobius_transform(CHarmonicMapMesh *pmesh, int nosetip_id, int left_eye_id, int right_eye_id) {
+//     /*!
+//     Compute the Möbius transform using the nosetip (1), left eye corner (2), and 
+//     right eye corner (3) as the fixed points on a 2D disc.
+
+//     Abbreviations: 
+//     ---------------
+//     nosetip -> "nt"
+//     left eye corner -> "le"
+//     right eye corner -> "re"
+//     Möbius -> "mb"
+
+//     map (z1, z2, z3) |-> (w1, w2, w3) s.t :
+//      - w1 = 0+0i, 
+//      - w2 = -.2+.2i
+//      - w3 = .2+.2i
     
-    0. Acccess the vertices to find the vertices at the input IDs.
-    1. Convert the uv coordinates of the Vertex to a complex type
-        e.g uv[0] = 0, uv[1] = 1
-        complex_uv = 0+1i
-    2. Fix the new point locations
-    3. Build the Möbius transform
-    4. Iterate through every Vertex
-    5. Convert the point to a complex value
-    6. Compute the Möbius values.
-    7. Convert the computed w from the complex plane to the coordinate plane
-    8. Assign the computed point to the vertex
-    */
-    printf("Setting constants for Möbius transform...\n");
-    // 0. Acccess the vertices to find the vertices at the input IDs.
-    CPoint2 uv_nt = pmesh->idVertex(nosetip_id)->uv();
-    CPoint2 uv_le = pmesh->idVertex(left_eye_id)->uv();
-    CPoint2 uv_re = pmesh->idVertex(right_eye_id)->uv();
+//     0. Acccess the vertices to find the vertices at the input IDs.
+//     1. Convert the uv coordinates of the Vertex to a complex type
+//         e.g uv[0] = 0, uv[1] = 1
+//         complex_uv = 0+1i
+//     2. Fix the new point locations
+//     3. Build the Möbius transform
+//     4. Iterate through every Vertex
+//     5. Convert the point to a complex value
+//     6. Compute the Möbius values.
+//     7. Convert the computed w from the complex plane to the coordinate plane
+//     8. Assign the computed point to the vertex
+//     */
+//     printf("Setting constants for Möbius transform...\n");
+//     // 0. Acccess the vertices to find the vertices at the input IDs.
+//     CPoint2 uv_nt = pmesh->idVertex(nosetip_id)->uv();
+//     CPoint2 uv_le = pmesh->idVertex(left_eye_id)->uv();
+//     CPoint2 uv_re = pmesh->idVertex(right_eye_id)->uv();
 
-    // 1. Convert the uv coordinates of the Vertex to a complex type.
-    Complex i_nt{uv_nt[0], uv_nt[1]};  // z1
-    Complex i_le{uv_le[0], uv_le[1]};  // z2
-    Complex i_re{uv_re[0], uv_re[1]};  // z3
+//     // 1. Convert the uv coordinates of the Vertex to a complex type.
+//     Complex i_nt{uv_nt[0], uv_nt[1]};  // z1
+//     Complex i_le{uv_le[0], uv_le[1]};  // z2
+//     Complex i_re{uv_re[0], uv_re[1]};  // z3
     
-    // 2. Fix the new point locations
-    Complex mb_nt{0.0, 0.0};  // w1
-    // Complex mb_le{-0.2, 0.2};  // w2 
-    // Complex mb_re{0.2, 0.2};  // w3
+//     // 2. Fix the new point locations
+//     Complex mb_nt{0.0, 0.0};  // w1
+//     // Complex mb_le{-0.2, 0.2};  // w2 
+//     // Complex mb_re{0.2, 0.2};  // w3
 
-    // w1 = (z2-z1)  (1-conj(z1)*z2)
-    Complex mb_le = (i_le - i_nt) / (1.0 - std::conj(i_nt)*i_le);
-    // w2 = (z3 - z1) / (1-conj(z1)*z3)
-    Complex mb_re = (i_re - i_nt) / (1.0 - std::conj(i_nt)*i_re);
-    double theta = atan(std::imag(mb_re - mb_le)/std::real(mb_le - mb_re));
+//     // w1 = (z2-z1)  (1-conj(z1)*z2)
+//     Complex mb_le = (i_le - i_nt) / (1.0 - std::conj(i_nt)*i_le);
+//     // w2 = (z3 - z1) / (1-conj(z1)*z3)
+//     Complex mb_re = (i_re - i_nt) / (1.0 - std::conj(i_nt)*i_re);
+//     double theta = atan(std::imag(mb_re - mb_le)/std::real(mb_le - mb_re));
 
-    // construct equation
+//     // construct equation
     
-    // 3. build the Möbius transform equation (z1, z2, z3) |-> (w1, w2, w3)
-    // printf("Calculating Möbius coefficients...\n");
-    // Complex* coeff = calculate_mobius_coefficients(i_nt, i_le, i_re, mb_nt, mb_le, mb_re);
-    // const Complex a = coeff[0];
-    // const Complex b = coeff[1];
-    // const Complex c = coeff[2];
-    // const Complex d = coeff[3];
-    // printf("Möbius coefficients set.\n");
-    printf("Set constants for Möbius transform.\n");
-    printf("Iterating through mesh, recomputing Texture coordinates...\n");
-    // 4. Iterate through the Vertices
-    for (CHarmonicMapMesh::MeshVertexIterator viter(pmesh); !viter.end(); ++viter)
-    {
-        CHarmonicMapVertex *vertex = *viter;
+//     // 3. build the Möbius transform equation (z1, z2, z3) |-> (w1, w2, w3)
+//     // printf("Calculating Möbius coefficients...\n");
+//     // Complex* coeff = calculate_mobius_coefficients(i_nt, i_le, i_re, mb_nt, mb_le, mb_re);
+//     // const Complex a = coeff[0];
+//     // const Complex b = coeff[1];
+//     // const Complex c = coeff[2];
+//     // const Complex d = coeff[3];
+//     // printf("Möbius coefficients set.\n");
+//     printf("Set constants for Möbius transform.\n");
+//     printf("Iterating through mesh, recomputing Texture coordinates...\n");
+//     // 4. Iterate through the Vertices
+//     for (CHarmonicMapMesh::MeshVertexIterator viter(pmesh); !viter.end(); ++viter)
+//     {
+//         CHarmonicMapVertex *vertex = *viter;
 
-        // 5. Convert the point to a complex value
-        Complex z{vertex->uv()[0], vertex->uv()[1]};
+//         // 5. Convert the point to a complex value
+//         Complex z{vertex->uv()[0], vertex->uv()[1]};
 
-        /*! 6. Compute the Möbius values. 
+//         /*! 6. Compute the Möbius values. 
             
-            w = (az + b) / (cz + d)
+//             w = (az + b) / (cz + d)
 
-            Author's note: I abhor single-character variables, 
-            but I will make an exception to keep in line with 
-            the mathematical notation.
+//             Author's note: I abhor single-character variables, 
+//             but I will make an exception to keep in line with 
+//             the mathematical notation.
 
-        */ 
-        Complex w = mobius_transform(z, i_nt, theta);
-        std::cout << "------------------------\n" << "W: " << w.real() << " " << w.imag() << "\nZ: " << z.real() << " " << z.imag() << "\n" << std::endl;
-        // 7. Convert the computed w from the complex plane to the coordinate plane
-        CPoint2 coord_point;
-        coord_point[0] = w.real();
-        coord_point[1] = w.imag();
+//         */ 
+//         Complex w = mobius_transform(z, i_nt, theta);
+//         std::cout << "------------------------\n" << "W: " << w.real() << " " << w.imag() << "\nZ: " << z.real() << " " << z.imag() << "\n" << std::endl;
+//         // 7. Convert the computed w from the complex plane to the coordinate plane
+//         CPoint2 coord_point;
+//         coord_point[0] = w.real();
+//         coord_point[1] = w.imag();
 
-        // 8. Assign the computed point to the vertex
-        vertex->uv() = coord_point;
-    }
-    printf("Texture coordinate reassignment complete.\n");
+//         // 8. Assign the computed point to the vertex
+//         vertex->uv() = coord_point;
+//     }
+//     printf("Texture coordinate reassignment complete.\n");
 
-    return;
-}
+//     return;
+// }
 
 
 void write_uv(CHarmonicMapMesh pMesh, std::string output)
