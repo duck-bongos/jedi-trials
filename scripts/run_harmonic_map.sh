@@ -3,7 +3,7 @@
 # check the bin directory for the executable.
 # The executable name is the same as in line 22 of
 # optimization/HarmonicMap/harmonic_map/CMakeLists.txt
-if [ ! -f bin/map ]
+if [ ! -f HarmonicMap/bin/map ]
 then
     echo -e "executable doesn't exist. Building...\n"
     cd HarmonicMap
@@ -21,11 +21,13 @@ then
 
 fi
 
-if [ ! -f bin/map ]
+if [ ! -f HarmonicMap/bin/map ]
 then
     echo -e "Executable bin/map doesn't exist. Please check the CMakeLists.txt and the build.\n\n"
     exit 1
 fi
+
+cd HarmonicMap
 
 echo -e 'Mapping source...'
 bin/map ../data/collapsed/source.obj ../data/mapped/source.obj

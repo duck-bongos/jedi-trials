@@ -45,15 +45,13 @@ def build_mobius_function(keypoints, textures):
     z2 = complex(*tuple(textures[keypoints["left_eye"], :]))
     z3 = complex(*tuple(textures[keypoints["right_eye"], :]))
 
-    origin = complex(0, 0)
-
     print(z1, z2, z3, origin)
 
     mb_le = (z2 - z1) / (1.0 - (z1.conjugate() * z2))
     mb_re = (z3 - z1) / (1.0 - (z1.conjugate() * z3))
 
     theta = atan((mb_re.imag - mb_le.imag) / (mb_le.real - mb_re.real))
-    return theta
+    return z1, theta
 
 
 if __name__ in "__main__":
@@ -63,4 +61,7 @@ if __name__ in "__main__":
     vert, text, face = read_obj(sys.argv[1])
     keypoints = read_keypoints(sys.argv[2])
 
-    build_mobius_function(keypoints, text)
+    origin, theta = build_mobius_function(keypoints, text)
+
+    for v in vert:
+        mobius(v[:3], origin, theta)

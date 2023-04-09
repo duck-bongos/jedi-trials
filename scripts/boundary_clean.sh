@@ -8,8 +8,8 @@ then
 	if [ -d "data/boundary" ]
 	then
 		echo "data/boundary exists, cleaning..."
-		rm -rf data/boundary/*
-		echo "data/boundary is now empty."
+		rm -rf data/boundary/*.obj
+		echo "Removed .obj files from data/boundary."
 	fi
 fi
 

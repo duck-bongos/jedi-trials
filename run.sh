@@ -5,7 +5,17 @@ chmod -R 755 scripts
 
 # clean the directory pertaining to boundary detection
 # runs boundary_clean.sh, map_clean.sh
-./clean.sh
+if [ $1 == "clean" || $2 == "build" ]
+then
+    echo -e "Cleaning directories first..."
+    ./clean.sh
+fi
+
+if [ $1 == "build" || $2 == "clean" ]
+then
+    echo -e "Building directories before the run..."
+    ./scripts/build_all.sh
+fi
 
 # detect the boundary
 ./scripts/detect_boundary.sh
@@ -17,10 +27,10 @@ chmod -R 755 scripts
 ./scripts/run_harmonic_map.sh
 
 # compute the mobius transform
-# ./scripts/mobius.sh
+./scripts/mobius.sh
 
 # compute the non rigid registration
-# ./scripts/nrr.sh
+./scripts/nrr.sh
 
 # visualization
 
