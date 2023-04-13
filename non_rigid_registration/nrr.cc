@@ -6,6 +6,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -18,6 +19,23 @@ struct Point {
     return sqrt(dx*dx + dy*dy);
   }
 };
+
+
+map<int, string> get_points(string fname) {
+    map<int, string> kp;
+    string name;
+    int vert_id;
+    string line;
+    ifstream infile(fname);
+    while (getline(infile, line)) {
+        istringstream iss(line);
+        if (!(iss >> name >> vert_id)) { break;}
+        kp[vert_id] = name;
+    }
+
+    return kp;
+}
+
 
 vector<Point> readPointCloud(const char* filename) {
     std::ifstream file(filename);
@@ -71,15 +89,38 @@ string change_fpath(string fname) {
     return nname;
 }
 
-void write_map(string fname, vector<Point> source, vector<Point> target) {
+string change_mpath(string fname) {
+  string mname = replace_substr(fname, "transformed", "metrics");
+  mname = replace_substr(mname, "source.obj", "euclid.txt");
+  return mname;
+}
+
+void write_map(
+  string fname, 
+  vector<Point> source, 
+  vector<Point> target, 
+  map<int, string> source_points, 
+  map<int, string> target_points
+) {
     string nname = change_fpath(fname);
+    string mname;
+    mname = change_mpath(fname);
+    ofstream mfile(mname);
     ofstream outfile(nname);
+    double dist;
     // Perform K-Nearest Neighbors between the source and target point clouds.
     int k = 1; // set k to 1 for nearest neighbor search
     cout << "Writing non-rigid mapping from source to target..." << endl;
     for (int i = 0; i < source.size(); i++) {
       int nearestIndex = nearestNeighbor(source[i], target);
       outfile << i << " " << nearestIndex << endl;
+
+      // if both
+      if (source_points.count(i) > 0 && target_points.count(nearestIndex)) {
+        cout << i << " " << nearestIndex << endl;
+        dist = source[i].distanceTo(target[nearestIndex]);
+        mfile << i << " " << nearestIndex << " distance:" << dist;
+      }
 
     }
     cout << "Wrote out non-rigid mapping from source to target." << endl;
@@ -91,12 +132,14 @@ int main(int argc, char** argv) {
     cerr << "Usage: knn <source.obj> <target.obj>" << endl;
     return 1;
   }
+  map<int, string> s_metrics = get_points("data/metrics/source.txt");
+  map<int, string> t_metrics = get_points("data/metrics/target.txt");
 
   // Read the source and target point clouds.
   vector<Point> sourcePoints = readPointCloud(argv[1]);
   vector<Point> targetPoints = readPointCloud(argv[2]);
 
-  write_map(argv[1], sourcePoints, targetPoints);
+  write_map(argv[1], sourcePoints, targetPoints, s_metrics, t_metrics);
 
   return 0;
 }

@@ -133,7 +133,6 @@ int main(int argc, char * argv[]){
 
     cout << "Computing Möbius transformation." << endl;
 
-
     compute_mobius_transform(keypoints["nosetip"], keypoints["left_eye"], keypoints["right_eye"]);
 
     string fpath_transformed = change_fpath(argv[1]);
