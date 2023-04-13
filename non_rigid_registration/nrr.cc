@@ -21,8 +21,8 @@ struct Point {
 };
 
 
-map<int, string> get_points(string fname) {
-    map<int, string> kp;
+map<string, int> get_points(string fname) {
+    map<string, int> pts;
     string name;
     int vert_id;
     string line;
@@ -30,10 +30,10 @@ map<int, string> get_points(string fname) {
     while (getline(infile, line)) {
         istringstream iss(line);
         if (!(iss >> name >> vert_id)) { break;}
-        kp[vert_id] = name;
+        pts[name] = vert_id;
     }
 
-    return kp;
+    return pts;
 }
 
 
@@ -56,7 +56,6 @@ vector<Point> readPointCloud(const char* filename) {
             texcoords.push_back(p);
         }
     }
-    
     file.close();
     return texcoords;
 }
@@ -91,21 +90,16 @@ string change_fpath(string fname) {
 
 string change_mpath(string fname) {
   string mname = replace_substr(fname, "transformed", "metrics");
-  mname = replace_substr(mname, "source.obj", "euclid.txt");
+  mname = replace_substr(mname, "source.obj", "metrics.txt");
   return mname;
 }
 
 void write_map(
   string fname, 
   vector<Point> source, 
-  vector<Point> target, 
-  map<int, string> source_points, 
-  map<int, string> target_points
+  vector<Point> target
 ) {
     string nname = change_fpath(fname);
-    string mname;
-    mname = change_mpath(fname);
-    ofstream mfile(mname);
     ofstream outfile(nname);
     double dist;
     // Perform K-Nearest Neighbors between the source and target point clouds.
@@ -114,32 +108,55 @@ void write_map(
     for (int i = 0; i < source.size(); i++) {
       int nearestIndex = nearestNeighbor(source[i], target);
       outfile << i << " " << nearestIndex << endl;
-
-      // if both
-      if (source_points.count(i) > 0 && target_points.count(nearestIndex)) {
-        cout << i << " " << nearestIndex << endl;
-        dist = source[i].distanceTo(target[nearestIndex]);
-        mfile << i << " " << nearestIndex << " distance:" << dist;
-      }
-
     }
     cout << "Wrote out non-rigid mapping from source to target." << endl;
 }
 
+void calculate_metrics(  
+  string fname, 
+  vector<Point> source, 
+  vector<Point> target, 
+  map<string, int> source_points, 
+  map<string, int> target_points
+) {
+  // if both
+  string mname = change_mpath(fname);
+  cout << mname << endl;
+  ofstream metrics(mname);
+
+  metrics << "Name SourceId TargetId Distance" << endl;
+  for (auto k: source_points ) {
+    string key = k.first;
+    int idx = k.second;
+    int target_idx = target_points[key];
+
+    Point s = source[idx];
+    Point t = target[target_idx];
+
+    // calculate the Euclidean norm
+    double dist = s.distanceTo(t);
+    cout << key << " " << idx << " " << target_idx << " " << dist << endl;
+
+    // write out metrics to file
+    metrics << key << " " << idx << " " << target_idx << " " << dist << endl;
+  }
+}
 
 int main(int argc, char** argv) {
   if (argc != 3) {
     cerr << "Usage: knn <source.obj> <target.obj>" << endl;
     return 1;
   }
-  map<int, string> s_metrics = get_points("data/metrics/source.txt");
-  map<int, string> t_metrics = get_points("data/metrics/target.txt");
+  map<string, int> s_metrics = get_points("data/metrics/source.txt");
+  map<string, int> t_metrics = get_points("data/metrics/target.txt");
 
   // Read the source and target point clouds.
   vector<Point> sourcePoints = readPointCloud(argv[1]);
   vector<Point> targetPoints = readPointCloud(argv[2]);
 
-  write_map(argv[1], sourcePoints, targetPoints, s_metrics, t_metrics);
+  calculate_metrics(argv[1], sourcePoints, targetPoints, s_metrics, t_metrics);
+
+  write_map(argv[1], sourcePoints, targetPoints);
 
   return 0;
 }

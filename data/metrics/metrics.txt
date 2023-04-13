@@ -1,0 +1,6 @@
+Name SourceId TargetId Distance
+left_cheek 9585 10061 0.0453532
+left_mouth_corner 7663 8380 0.024326
+mid_top_lip 5569 6234 0.043101
+right_cheek 12675 13345 0.145779
+right_mouth_corner 11151 11739 0.0348566
