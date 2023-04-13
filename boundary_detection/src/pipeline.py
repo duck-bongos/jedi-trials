@@ -13,24 +13,26 @@ import numpy as np
 
 
 from .face_mesh import (
-    add_keypoint_voxels,
+    add_point_voxels,
     build_mask_from_boundary,
     compute_boundary_edges,
     compute_face_mesh,
-    compute_keypoints,
+    draw_points,
     compute_mesh_and_boundary,
     find_keypoint_texture_ids,
+    find_keypoints,
+    find_metric_points,
+    find_metric_texture_idxs,
     get_boundary_idx,
     get_boundary_from_annotation,
-    get_keypoint_indices,
-    find_keypoints,
+    get_keypoint_centroids,
 )
 from .utils import (
     preprocess_pixels,
     preprocess_voxels,
     process_obj_file,
-    write_keypoints,
     write_object,
+    write_points,
 )
 
 mp_drawing = mp.solutions.drawing_utils
@@ -58,6 +60,7 @@ def run_face_mesh_pipeline(
 
     landmarks = compute_face_mesh(img)
     norm_keypoints = find_keypoints(landmarks)
+    metric_idxs, norm_metric_points = find_metric_points(landmarks=landmarks)
 
     # read from static list
     boundary_idx: List[int] = get_boundary_idx()
@@ -73,15 +76,25 @@ def run_face_mesh_pipeline(
     boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
 
     # find the key points
-    kp_img, kp_color = compute_keypoints(
-        img, norm_keypoints, landmark_spec=BOUNDARY_SPEC
+    kp_img, kp_color = draw_points(img, norm_keypoints, landmark_spec=BOUNDARY_SPEC)
+
+    # find the metric points
+    metric_img, metric_color = draw_points(
+        img, norm_metric_points, landmark_spec=BOUNDARY_SPEC
     )
 
     # QUCK CHECK
     # cv2.imwrite("keypoint.png", kp_img)
 
     # grab the key point indices
-    kp_idx, all_idxs = get_keypoint_indices(kp_img, kp_color)
+    kp_idx, all_idxs = get_keypoint_centroids(
+        kp_img, kp_color, k_size=len(norm_keypoints.landmark)
+    )
+
+    # grab the metric point indices
+    mt_idx, m_all_idxs = get_keypoint_centroids(
+        metric_img, metric_color, k_size=len(norm_metric_points.landmark)
+    )
 
     # write out mask
     mask = build_mask_from_boundary(annotated_img, boundary)
@@ -89,26 +102,31 @@ def run_face_mesh_pipeline(
     fpath_texture = fpath_img
     fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")
     texture_read = np.loadtxt(fpath_texture.resolve().as_posix())
-    texture = texture_read.copy()
+    textures = texture_read.copy()
 
+    # Understand the key points
     keypoint_texture_ids = find_keypoint_texture_ids(
-        kp_idx, texture=texture, shape=img.shape
+        kp_idx, texture=textures, shape=img.shape
+    )
+
+    metric_point_texture_ids = find_metric_texture_idxs(
+        metric_idxs, mt_idx, texture=textures, shape=img.shape
     )
 
     # List of points of the form (y, x)
-    texture[:, 0] *= img.shape[1]
-    texture[:, 1] *= img.shape[0]
-    texture = np.round(texture, 0).astype(int)
+    textures[:, 0] *= img.shape[1]
+    textures[:, 1] *= img.shape[0]
+    textures = np.round(textures, 0).astype(int)
 
     texture_img = np.zeros(img.shape)
-    for row, col in texture:
+    for row, col in textures:
         texture_img[col, row] = MASK_COLOR
 
     # now merge with the mask, divide by 255 to return to 0-255 normal values.
     constrained_face = (texture_img * mask) // 255
 
     things = []
-    for idx, (row, col) in enumerate(texture):
+    for idx, (row, col) in enumerate(textures):
         # switch column and row
         if all(constrained_face[col, row] == MASK_COLOR):
             things.append(idx)
@@ -122,8 +140,10 @@ def run_face_mesh_pipeline(
     # voxel_read = np.loadtxt(fpath_voxel.resolve().as_posix())
     # voxels = voxel_read.copy()
 
-    kpv = add_keypoint_voxels(keypoint_texture_ids, centered_voxels)
-    write_keypoints(fpath_img, kpv)
+    kpv = add_point_voxels(keypoint_texture_ids, centered_voxels)
+    mpv = add_point_voxels(metric_point_texture_ids, centered_voxels)
+    write_points(fpath_img, kpv)
+    write_points(fpath_img, mpv, "metrics")
 
     write_object(
         fpath_out=fpath_img,

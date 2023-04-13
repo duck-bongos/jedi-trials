@@ -22,6 +22,14 @@ def get_boundary_fpath(fname: Path, **kwargs) -> str:
     return new_path.as_posix()
 
 
+def get_new_fpath(fname: Path, new_dir: str):
+    extension = ".txt"
+    data_dir = fname.parent
+    path_ = data_dir / new_dir / fname.stem
+    new_path = path_.with_suffix(extension)
+    return new_path.as_posix()
+
+
 def get_keypoint_fpath(fname: Path) -> str:
     extension = ".txt"
     data_dir = fname.parent
@@ -248,15 +256,16 @@ def write_matrix(fpath: Path, matrix: np.ndarray, **kwargs) -> None:
     np.save(fpath_matrix, matrix)
 
 
-def write_keypoints(
-    fpath_out: Path, keypoints: Dict[str, Dict[str, Union[int, np.ndarray]]]
+def write_points(
+    fpath_out: Path,
+    keypoints: Dict[str, Dict[str, Union[int, np.ndarray]]],
+    point_dir: str = "keypoints",
 ):
-    fpath_keypoints = get_keypoint_fpath(fpath_out)
-    with open(fpath_keypoints, "w") as fkp:
-        # Write the points
+    fpath_metrics = get_new_fpath(fpath_out, point_dir)
+    with open(fpath_metrics, "w") as fmp:
         for k, v in keypoints.items():
             vox = v["xyz"]
-            fkp.write(f"{k} {' '.join([str(v) for v in vox])}\n")
+            fmp.write(f"{k} {' '.join([str(v) for v in vox])}\n")
 
 
 def write_object(

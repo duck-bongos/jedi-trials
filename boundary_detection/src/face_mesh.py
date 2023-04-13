@@ -30,7 +30,7 @@ BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=1, circle_ra
 MASK_COLOR = [255, 255, 255]
 
 
-def add_keypoint_voxels(keypoints, voxels: np.ndarray):
+def add_point_voxels(keypoints, voxels: np.ndarray):
     for k, v in keypoints.items():
         vx = voxels[v["idx"]]
         keypoints[k]["xyz"] = np.round(vx, 5)
@@ -93,9 +93,9 @@ def compute_face_mesh(img: np.ndarray):
             return mark
 
 
-def compute_keypoints(
+def draw_points(
     img: np.ndarray,
-    landmarks: np.ndarray,
+    landmarks: NormalizedLandmarkList,
     landmark_spec=None,
 ):
     annotated_image = img.copy()
@@ -139,6 +139,32 @@ def compute_mesh_and_boundary(
     #    print("WARNING: No image written.")
 
     return annotated_image, boundary_spec.color
+
+
+def find_keypoints(landmarks) -> NormalizedLandmarkList:
+    """Get the coordinates of the 3 key points.
+
+    See get_keypoint_idx() for more information.
+    """
+    idxs = get_keypoint_idx()
+    marks = NormalizedLandmarkList()
+    for k in idxs:
+        marks.landmark.append(landmarks.landmark[k])
+    return marks
+
+
+def find_metric_points(landmarks) -> NormalizedLandmarkList:
+    """Return coordinates of all metric points
+
+    See metric_idx() for more information.
+    """
+    mp: Dict[str, int]
+    idxs: List[int]
+    mp, idxs = get_metric_idx()
+    marks = NormalizedLandmarkList()
+    for i in idxs:
+        marks.landmark.append(landmarks.landmark[i])
+    return mp, marks
 
 
 def get_boundary_from_annotation(
@@ -194,32 +220,48 @@ def get_boundary_idx():
     return boundary
 
 
-def get_keypoint_indices(img: np.ndarray, color=Tuple[int, int, int]):
-    idxs = get_color_indices_from_img(img, color)
+def get_keypoint_idx() -> List[int]:
+    """Get keypoint IDs
 
-    centroid, _ = kmeans2(idxs.astype(float), k=3, seed=0)
-    # for i in range(3):
-    #     print(centroid[i][0] * centroid[i][1])
-    # 933816
-    # 816185
-    # 654454
+    https://github.com/tensorflow/
+    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
+    face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
 
-    return centroid.astype(int), idxs
-
-
-def find_keypoints(landmarks) -> None:
-    """Get the coordinates of the 3 key points.
-
-    See get_keypoint_idx() for more information.
+    Combined with this image:
+    https://github.com/tensorflow/
+    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
+    face-landmarks-detection/mesh_map.jpg
     """
-    idxs = get_keypoint_idx()
-    marks = NormalizedLandmarkList()
+    # keypoints = {"left_eye_corner": 173, "right_eye_corner": 398, "nosetip": 1}
+    keypoints = [
+        1,
+        173,
+        398,
+    ]
 
-    kp = {}  # ?
-    for k, v in idxs.items():
-        marks.landmark.append(landmarks.landmark[v])
-        kp[k] = landmarks.landmark[v]  # ?
-    return marks
+    return keypoints
+
+
+def get_metric_idx() -> Tuple[Dict[str, int], List[int]]:
+    """"""
+    lines = []
+    with open("mediapipe_constants/metrics.txt") as m:
+        lines = m.readlines()
+
+    points = {line.strip().split(" ")[0]: line.strip().split(" ")[1] for line in lines}
+    metrics = [int(line.strip().split(" ")[1]) for line in lines]
+    return points, metrics
+
+
+def get_keypoint_centroids(img: np.ndarray, color=Tuple[int, int, int], k_size=1):
+    idxs = get_color_indices_from_img(img, color)
+    arr = np.zeros((k_size, 2))
+    for i in range(k_size):
+        arr[i] = idxs[i : (i + 1 * 8)].mean(axis=0)
+
+    arr = np.round(arr, 0).astype(int)
+
+    return arr, idxs
 
 
 def find_keypoint_texture_ids(
@@ -250,21 +292,25 @@ def find_keypoint_texture_ids(
     return d
 
 
-def get_keypoint_idx():
-    """Get keypoint IDs
+def find_metric_texture_idxs(
+    points: Dict[str, int],
+    metric_idx: np.ndarray,
+    texture: np.ndarray,
+    shape: Tuple[int, int],
+):
+    mi = np.zeros(metric_idx.shape)
+    mi[:, 0] = metric_idx[:, 0] / shape[0]
+    mi[:, 1] = metric_idx[:, 1] / shape[1]
 
-    https://github.com/tensorflow/
-    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
-    face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
+    for i, (k, v) in enumerate(points.items()):
+        points[k] = {}
+        points[k]["mark"] = int(v)
+        points[k]["uv"] = mi[i]
+        points[k]["idx"] = np.argmin(
+            np.apply_along_axis(np.linalg.norm, 1, texture - mi[i])
+        )
 
-    Combined with this image:
-    https://github.com/tensorflow/
-    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
-    face-landmarks-detection/mesh_map.jpg
-    """
-    keypoints = {"left_eye_corner": 173, "right_eye_corner": 398, "nosetip": 1}
-
-    return keypoints
+    return points
 
 
 def get_color_indices_from_img(

@@ -117,7 +117,6 @@ void compute_mobius_transform(int nosetip_id, int left_eye_id, int right_eye_id)
         Complex w = mobius_transform(z, z1, theta);
         vertices[i] = w;
     }
-
 }
 
 int main(int argc, char * argv[]){
