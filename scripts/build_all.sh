@@ -27,3 +27,23 @@ then
     clang++ -std=c++11 mobius/mobius.cc -o mobius/mobius
     echo -e "Built mobius/mobius"
 fi
+
+
+if [ -f requirements.txt ]
+then
+    # create a new python3 environment & install requirements
+	echo -e "Creating a virtual environment..."
+	python3 -m venv tmp
+
+	echo -e "Created virtual environment 'tmp'."
+	
+	echo -e "Activating the virtual environment..."
+	source tmp/bin/activate
+
+	which python3
+	python3 --version
+
+	echo -e "Installing the dependencies..."
+	pip3 install -r requirements.txt
+
+fi

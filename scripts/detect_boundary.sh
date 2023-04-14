@@ -1,27 +1,10 @@
 # Detect the boundary for the input files
 
-# check the directories exists
-[ -d data/source ] && [ -d data/target ]
+# check the object files exist
+[ -f data/source.obj ] && [ -f data/target.obj ] 
 
-# check that the dependencies file exists
-# if [[ -f boundary_detection/mediapipe_mesh/requirements.txt ]]
-# then
-# 	# create a new python3 environment & install requirements
-# 	echo -e "Creating a virtual environment..."
-# 	python3 -m venv tmp
-
-# 	echo -e "Created virtual environment 'tmp'."
-	
-# 	echo -e "Activating the virtual environment..."
-# 	source tmp/bin/activate
-
-# 	which python3
-# 	python3 --version
-
-# 	echo -e "Installing the dependencies..."
-# 	pip3 install -r boundary_detection/mediapipe_mesh/requirements.txt
-
-# fi
+# check the image files exist
+[ -f data/source.png ] && [ -f data/target.png]
 
 # navigate to the boundary_detection directory
 cd boundary_detection/
@@ -29,7 +12,7 @@ cd boundary_detection/
 # for now, enforce the data directory is at the top level
 python main.py
 
-echo -e "Completed boundary detection, tearing down..."
+echo -e "Completed boundary detection."
 
 # return to the top level directory
 cd ..
@@ -37,11 +20,14 @@ cd ..
 
 if [ -d tmp ]
 then
+	echo -e "tmp directory exists, tearing down..."
 	# turn off the virtual environment
 	deactivate
 
 	# remove the virtual environment
 	rm -rf tmp
+	echo -e "Teardown complete."
 fi
 
-echo -e "Teardown complete."
+echo -e "Boundary detection complete."
+

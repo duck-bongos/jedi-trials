@@ -5,20 +5,26 @@ chmod -R 755 scripts
 
 # clean the directory pertaining to boundary detection
 # runs boundary_clean.sh, map_clean.sh
-if [ $1 == "clean" || $2 == "build" ]
+if [ $1 == "clean" && $2 == "build" ] || [ $1 == "build" && $2 == "clean" ]
+then
+    echo -e "Cleaning directories first..."
+    ./clean.sh build
+
+    echo -e "Building requirements before the run..."
+    ./scripts/build_all.sh
+elif [ $1 == "build" ]
+then
+    echo -e "Building requirements before the run..."
+    ./scripts/build_all.sh
+fi
+elif [ $1 == "clean" ]
 then
     echo -e "Cleaning directories first..."
     ./clean.sh
 fi
 
-if [ $1 == "build" || $2 == "clean" ]
-then
-    echo -e "Building directories before the run..."
-    ./scripts/build_all.sh
-fi
-
 # detect the boundary
-./scripts/detect_boundary.sh
+./scripts/detect_boundary.sh 
 
 # collapse the edges
 ./scripts/qecd.sh
