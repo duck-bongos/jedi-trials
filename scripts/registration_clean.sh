@@ -1,4 +1,4 @@
-if [ -f data/registration/map.txt ]
+if [[ -f data/registration/map.txt ]]
 then
     echo -e "Cleaning the data/registration directory..."
     rm -rf data/registration/map.txt

@@ -20,7 +20,6 @@ struct Point {
   }
 };
 
-
 map<string, int> get_points(string fname) {
     map<string, int> pts;
     string name;
@@ -124,7 +123,8 @@ void calculate_metrics(
   cout << mname << endl;
   ofstream metrics(mname);
 
-  metrics << "Name SourceId TargetId Distance" << endl;
+  metrics << "Name SourceId TargetId Error" << endl;
+  double total_distance = 0.0;
   for (auto k: source_points ) {
     string key = k.first;
     int idx = k.second;
@@ -135,11 +135,16 @@ void calculate_metrics(
 
     // calculate the Euclidean norm
     double dist = s.distanceTo(t);
+    total_distance += dist;
     cout << key << " " << idx << " " << target_idx << " " << dist << endl;
 
     // write out metrics to file
     metrics << key << " " << idx << " " << target_idx << " " << dist << endl;
   }
+  // write out Sum of Squared Errors
+  metrics << "\n-------------------------------------" << endl;
+  metrics << "Sum of Error" << endl;
+  metrics << total_distance << endl;
 }
 
 int main(int argc, char** argv) {

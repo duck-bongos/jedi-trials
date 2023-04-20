@@ -1,0 +1,5 @@
+Cleaning
+	0.03s real		0.00s user		0.02s sys
+Data Copy from ../data/self/
+Boundary detection
+	1.89s real		2.35s user		0.65s sys

@@ -1,4 +1,4 @@
-if [ -d data/collapsed ]
+if [[ -d data/collapsed ]]
 then
     echo -e "Cleaning data/collapsed..."
     rm -rf data/collapsed/*.obj

@@ -1,4 +1,4 @@
-if [ ! -f HarmonicMap/bin/map ]
+if [[ ! -f HarmonicMap/bin/map ]]
 then
     echo -e "executable doesn't exist. Building...\n"
     cd HarmonicMap
@@ -16,20 +16,20 @@ then
 
 fi
 
-if [ ! -f non_rigid_registration/nrr ]
+if [[ ! -f non_rigid_registration/nrr ]]
 then
     clang++ -std=c++11 non_rigid_registration/nrr.cc -o non_rigid_registration/nrr
     echo -e "Built non_rigid_registration/nrr"
 fi
 
-if [ ! -f mobius/mobius ]
+if [[ ! -f mobius/mobius ]]
 then
     clang++ -std=c++11 mobius/mobius.cc -o mobius/mobius
     echo -e "Built mobius/mobius"
 fi
 
 
-if [ -f requirements.txt ]
+if [[ -f requirements.txt ]]
 then
     # create a new python3 environment & install requirements
 	echo -e "Creating a virtual environment..."

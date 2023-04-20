@@ -1,10 +1,10 @@
 # Detect the boundary for the input files
 
 # check the object files exist
-[ -f data/source.obj ] && [ -f data/target.obj ] 
+[[ -f data/source.obj ]] && [[ -f data/target.obj ]]
 
 # check the image files exist
-[ -f data/source.png ] && [ -f data/target.png]
+[[ -f data/source.png ]] && [[ -f data/target.png ]]
 
 # navigate to the boundary_detection directory
 cd boundary_detection/
@@ -18,7 +18,7 @@ echo -e "Completed boundary detection."
 cd ..
 
 
-if [ -d tmp ]
+if [[ -d tmp ]]
 then
 	echo -e "tmp directory exists, tearing down..."
 	# turn off the virtual environment

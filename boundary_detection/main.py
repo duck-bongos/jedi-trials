@@ -5,6 +5,9 @@
     These will be consumed downstream.
     
 """
+import pstats
+from pstats import SortKey
+import cProfile
 from pathlib import Path
 
 from src.pipeline import run_face_mesh_pipeline
@@ -18,6 +21,11 @@ if __name__ == "__main__":
     fpath_source_obj = Path(args.source_obj)
     fpath_target_obj = Path(args.target_obj)
 
+    # cProfile.run(
+    #     "run_face_mesh_pipeline(fpath_img=fpath_source_img, fpath_obj=fpath_source_obj, display=False)",
+    #     "restats",
+    # )
+
     run_face_mesh_pipeline(
         fpath_img=fpath_source_img, fpath_obj=fpath_source_obj, display=False
     )
@@ -26,4 +34,4 @@ if __name__ == "__main__":
         fpath_img=fpath_target_img, fpath_obj=fpath_target_obj, display=False
     )
 
-    print("Boundary detection complete.")
+    # print("Boundary detection complete.")

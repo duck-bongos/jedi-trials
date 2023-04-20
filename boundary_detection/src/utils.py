@@ -228,10 +228,9 @@ def update_vertex_indices(face_string: str, mapping: Dict[int, int]) -> str:
 
     """
     updated_idxs = "f "
-    for i, idx in enumerate(re.split("f| |/", face_string[2:])):
-        if i % 2 == 0:
-            updated_idxs += str(mapping[int(idx)]) + "/" + str(mapping[int(idx)]) + " "
-
+    fs = [int(x.split("/")[0]) for x in face_string[2:].strip().split(" ")]
+    for idx in fs:
+        updated_idxs += str(mapping[idx]) + "/" + str(mapping[idx]) + " "
     updated_idxs = updated_idxs[:-1]
     return updated_idxs + "\n"
 
@@ -281,7 +280,9 @@ def write_object(
     d.update(kwargs)
     idx_mapping = {}
 
-    get_vertex_indices = lambda a: set(int(i) for i in re.split("f| |/", a[2:]))
+    get_vertex_indices = lambda a: set(
+        [int(x.split("/")[0]) for x in a[2:].strip().split(" ")]
+    )
 
     fpath_selected = get_boundary_fpath(fpath_out, **d)
 
@@ -302,9 +303,14 @@ def write_object(
 
         with open(fpath_obj, "r") as f_obj:
             read = f_obj.read()
-            faces = re.findall("f\ .*", read)
+            # two different WaveFront object face formats. This makes sure both use
+            # cases are accounted for
+            format1 = re.findall("(f(?:\ \d*\/\d*\/\d*){3}\\n)", read)
+            format2 = re.findall("(f(?:\ \d*\/\d*){3}\\n)", read)
+            format = format1 if len(format1) > len(format2) else format2
+
             # for every face in the mesh...
-            for face_idxs in faces:
+            for face_idxs in format:
                 vtx = get_vertex_indices(face_idxs)
 
                 # make sure all the face vertices are within the boundary

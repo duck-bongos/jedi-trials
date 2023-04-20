@@ -285,9 +285,8 @@ def find_keypoint_texture_ids(
     d["right_eye"]["uv"] = kpi[re_idx, :]
 
     for k, v in d.items():
-        d[k]["idx"] = np.argmin(
-            np.apply_along_axis(np.linalg.norm, 1, texture - v["uv"])
-        )
+        distance = np.linalg.norm(texture - v["uv"], axis=1)
+        d[k]["idx"] = np.argmin(distance)
 
     return d
 
@@ -306,9 +305,8 @@ def find_metric_texture_idxs(
         points[k] = {}
         points[k]["mark"] = int(v)
         points[k]["uv"] = mi[i]
-        points[k]["idx"] = np.argmin(
-            np.apply_along_axis(np.linalg.norm, 1, texture - mi[i])
-        )
+        d = np.linalg.norm(texture - mi[i], axis=1)
+        points[k]["idx"] = np.argmin(d)
 
     return points
 
