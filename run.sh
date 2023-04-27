@@ -1,10 +1,10 @@
 #!/bin/bash
 BUILD=0
 CLEAN=0
-RECURSE=0
 SKIP_BD=0
+ZIPDATA=0
 
-while getopts 'bcd:Rs' flag
+while getopts 'bcd:sz' flag
 do
     case "$flag" in
         b) 
@@ -16,14 +16,14 @@ do
         d) 
             DIRPATH=$OPTARG
             ;;
-        R) 
-            RECURSE=1
-            ;;
         s)
             SKIP_BD=1
             ;;
+        z)
+            ZIPDATA=1
+            ;;
         ?) 
-            echo -e "Illegal option. Usage: $(basename ) [-b] [-c] [-d <dirpath>]" >&2
+            echo -e "Illegal option. Usage: $(basename ) [-b] [-c] [-d <dirpath>] [-s] [-o <outpath>]" >&2
             exit 1
             ;;
     esac
@@ -34,25 +34,39 @@ shift "$(($OPTIND -1))"
 data_copy() {
     # copy the source and target to the data directory
     find "$1" -maxdepth 1 -mindepth 1 -type f | while read -r fi; do
-        echo "Copying $fi"
         f="$(basename -- $fi)"
-        cp $fi data/$f
+        extension="${fi##*.}"
+        if [[ $extension == "obj" || $extension == "png" ]]
+        then
+            echo "Copying $fi"
+            cp $fi data/$f
+        fi
     done
 }
 
-main () {
-    echo "Data Copy from $1" >> runtime.txt
-    data_copy $1
+zip_data() {
+    zip -r $1/data.zip ./data/
+}
 
-    if [[ $SKIP_BD == 0 ]]
+main () {
+    if [[ $SKIP_BD == 1 ]]
     then
         echo "Boundary detection" >> runtime.txt
-        /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh 
-    fi
+        /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh -k
 
-    # collapse the edges
-    echo "Quadric Edge Collapse Decimation" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh
+        # collapse the edges
+        echo "Quadric Edge Collapse Decimation" >> runtime.txt
+        /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh 1
+
+    else
+        echo "Boundary detection" >> runtime.txt
+        /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh
+
+        # collapse the edges
+        echo "Quadric Edge Collapse Decimation" >> runtime.txt
+        /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh
+
+    fi
 
     # Compute the harmonic map
     echo "Harmonic Map" >> runtime.txt
@@ -113,20 +127,19 @@ fi
 echo "Skip $SKIP_BD"
 echo "Build: $BUILD";
 echo "Clean: $CLEAN";
-echo "Recurse: $RECURSE";
 echo "Dirpath: $DIRPATH";
+echo "Zip Data: $ZIPDATA";
 
-if [[ $RECURSE == 0 ]]
+if [[ ! -z "$DIRPATH" ]]
 then
-    main "$DIRPATH"
-else
-    find "$DIRPATH" -maxdepth 1 -mindepth 1 -type d | while read -r dir; do
-        if [[ ! "$dir" == "../data//.DS_STORE" ]]
-        then
-            echo "Running on $dir" >> runtime.txt
-            main "$dir"
-        fi
-    done
+    data_copy "$DIRPATH"
 fi
 
-
+main
+echo 
+if [[ $ZIPDATA == 1 && ! -z "$DIRPATH" ]]
+then
+    echo "Zipping data and sending to $DIRPATH ..."
+    zip_data "$DIRPATH"
+    echo "Zipping complete!"
+fi

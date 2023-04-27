@@ -9,8 +9,13 @@
 # navigate to the boundary_detection directory
 cd boundary_detection/
 
+# if [[ ! -z $1 ]]
+# then
+# 	echo $1
+# fi
+
 # for now, enforce the data directory is at the top level
-python main.py
+python main.py $1
 
 echo -e "Completed boundary detection."
 

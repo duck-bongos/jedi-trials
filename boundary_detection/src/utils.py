@@ -70,6 +70,12 @@ def parse_cli() -> ArgumentParser:
         default="../data/target.obj",
         required=False,
     )
+    ap.add_argument(
+        "--skip_boundary",
+        "-k",
+        dest="skip_boundary",
+        action="store_true",
+    )
     args = ap.parse_args()
     args = Box(args.__dict__)
 
@@ -278,6 +284,8 @@ def write_object(
     """Create an .obj file using the texture and vertices data."""
     d = {"prefix": "masked", "suffix": "object", "extension": "obj"}
     d.update(kwargs)
+
+    # map to translate unfiltered index values to filtered values
     idx_mapping = {}
 
     get_vertex_indices = lambda a: set(

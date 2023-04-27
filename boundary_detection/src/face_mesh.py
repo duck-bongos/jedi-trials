@@ -5,7 +5,7 @@
     Module to work with mediapipe face meshes.
 """
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import mediapipe as mp
@@ -26,8 +26,9 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
 
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
-BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=1, circle_radius=2)
-MASK_COLOR = [255, 255, 255]
+# BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=1, circle_radius=2)
+BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=1, circle_radius=2)
+MASK_COLOR = [0, 0, 255]
 
 
 def add_point_voxels(keypoints, voxels: np.ndarray):
@@ -38,10 +39,13 @@ def add_point_voxels(keypoints, voxels: np.ndarray):
 
 
 def build_mask_from_boundary(
-    img: np.ndarray, boundary: Union[Polygon, List[np.ndarray], np.ndarray]
+    img: np.ndarray,
+    boundary: Union[Polygon, List[np.ndarray], np.ndarray],
+    color: Optional[List[int]] = None,
 ) -> np.ndarray:
     """Returns black and whilte to represent the face outline."""
     overlay = img.copy()
+    color = color if color is not None else MASK_COLOR
 
     if isinstance(boundary, Polygon):
         int_coords = lambda x: np.array(x).round().astype(np.int32)
@@ -257,11 +261,11 @@ def get_keypoint_centroids(img: np.ndarray, color=Tuple[int, int, int], k_size=1
     idxs = get_color_indices_from_img(img, color)
     arr = np.zeros((k_size, 2))
     for i in range(k_size):
-        arr[i] = idxs[i : (i + 1 * 8)].mean(axis=0)
+        arr[i] = idxs[i * 8 : (i + 1) * 8].mean(axis=0)
 
     arr = np.round(arr, 0).astype(int)
 
-    return arr, idxs
+    return arr
 
 
 def find_keypoint_texture_ids(
@@ -339,28 +343,3 @@ def get_color_indices_from_img(
         boundary = np.unique(boundary, axis=0)
 
     return boundary
-
-
-def show_polygon_overlay(
-    img: np.ndarray,
-    landmarks: np.ndarray,
-):
-    """Draws a polygon on an image. For display purposes only."""
-    # convert the landmark list to the
-    img = img.copy()
-
-    # TODO: candidate for refactor
-    # landmarks[:, [0, 1]] = landmarks[:, [1, 0]]  # correct for CV2 interpretation
-    polygon = Polygon(landmarks)
-    int_coords = lambda x: np.array(x).round().astype(np.int32)
-    exterior = [int_coords(polygon.exterior.coords)]
-
-    alpha = 0.1
-    overlay = img.copy()
-    cv2.fillPoly(overlay, exterior, color=(0, 255, 255))
-
-    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
-    cv2.imshow("Polygon", overlay)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    return

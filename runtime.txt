@@ -1,5 +1,12 @@
 Cleaning
-	0.03s real		0.00s user		0.02s sys
-Data Copy from ../data/self/
+	0.05s real		0.01s user		0.02s sys
 Boundary detection
-	1.89s real		2.35s user		0.65s sys
+	17.72s real		15.39s user		2.07s sys
+Quadric Edge Collapse Decimation
+	12.64s real		11.51s user		1.89s sys
+Harmonic Map
+	37.00s real		34.51s user		1.30s sys
+Möbius transform
+	1.49s real		0.82s user		0.54s sys
+Non-Rigid Registration
+	4.55s real		3.71s user		0.17s sys
