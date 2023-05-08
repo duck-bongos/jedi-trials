@@ -101,16 +101,18 @@ void write_map(
     string nname = change_fpath(fname);
     ofstream outfile(nname);
     double dist;
+
     // Perform K-Nearest Neighbors between the source and target point clouds.
     int k = 1; // set k to 1 for nearest neighbor search
     cout << "Writing non-rigid mapping from source to target..." << endl;
     for (int i = 0; i < source.size(); i++) {
       int nearestIndex = nearestNeighbor(source[i], target);
       outfile << i << " " << nearestIndex << endl;
+      
     }
     cout << "Wrote out non-rigid mapping from source to target." << endl;
 }
-
+  
 void calculate_metrics(  
   string fname, 
   vector<Point> source, 
