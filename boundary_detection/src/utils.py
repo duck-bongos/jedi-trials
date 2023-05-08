@@ -7,6 +7,25 @@ from box import Box
 import cv2
 import numpy as np
 
+import numpy as np
+
+
+def calculate_area(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray):
+    # Calculate the vectors between the points
+    v1 = p2 - p1
+    v2 = p3 - p1
+
+    # Calculate the cross product of the vectors
+    cross_product = np.cross(v1, v2)
+
+    # Calculate the magnitude of the cross product
+    magnitude = np.linalg.norm(cross_product)
+
+    # Divide the magnitude by 2 to get the area
+    area = magnitude / 2
+
+    return area
+
 
 def get_boundary_fpath(fname: Path, **kwargs) -> str:
     extension = kwargs.get("extension", "")

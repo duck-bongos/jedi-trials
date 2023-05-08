@@ -28,7 +28,7 @@ mp_face_mesh = mp.solutions.face_mesh
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 # BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=1, circle_radius=2)
 BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=1, circle_radius=2)
-MASK_COLOR = [0, 0, 255]
+MASK_COLOR = [0, 255, 255]
 
 
 def add_point_voxels(keypoints, voxels: np.ndarray):
@@ -171,6 +171,13 @@ def find_metric_points(landmarks) -> NormalizedLandmarkList:
     return mp, marks
 
 
+def find_boundary_points(landmarks, idxs):
+    marks = NormalizedLandmarkList()
+    for k in idxs:
+        marks.landmark.append(landmarks.landmark[k])
+    return marks
+
+
 def get_boundary_from_annotation(
     img: np.ndarray, boundary_color: Tuple[int, int, int], two_d_only: bool = False
 ):
@@ -218,9 +225,31 @@ def get_boundary_idx():
     face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
     """
     boundary = []
-    with open("mediapipe_constants/boundary.txt") as bound:
+    with open("mediapipe_constants/silhouette.txt") as bound:
         boundary = [int(x.strip()) for x in bound.readlines()]
 
+    return boundary
+
+
+def get_second_boundary_idx():
+    boundary = []
+    with open("mediapipe_constants/second.txt") as bound:
+        boundary = [int(x.strip()) for x in bound.readlines()]
+    return boundary
+
+
+def get_third_boundary_idx():
+    boundary = []
+    with open("mediapipe_constants/third.txt") as bound:
+        boundary = [int(x.strip()) for x in bound.readlines()]
+    return boundary
+
+
+def get_custom_boundary_idx():
+    """A combination of second.txt and third.txt"""
+    boundary = []
+    with open("mediapipe_constants/custom.txt") as bound:
+        boundary = [int(x.strip()) for x in bound.readlines()]
     return boundary
 
 

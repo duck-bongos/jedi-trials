@@ -25,8 +25,11 @@ from .face_mesh import (
     find_metric_points,
     find_metric_texture_idxs,
     get_boundary_idx,
+    get_custom_boundary_idx,
     get_boundary_from_annotation,
     get_keypoint_centroids,
+    get_second_boundary_idx,
+    get_third_boundary_idx,
 )
 from .utils import (
     preprocess_pixels,
@@ -43,14 +46,7 @@ BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=3, circle_ra
 LANDMARK_SPEC = mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=2)
 # LANDMARK_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=5, circle_radius=5)
 # BGR - RED Mask
-MASK_COLOR = [0, 0, 255]
-
-
-def find_boundary_points(landmarks, idxs):
-    marks = NormalizedLandmarkList()
-    for k in idxs:
-        marks.landmark.append(landmarks.landmark[k])
-    return marks
+MASK_COLOR = [0, 255, 255]
 
 
 def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
@@ -62,7 +58,7 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     # process the file
     process_obj_file(fpath_obj)
 
-    centered_voxels, _ = preprocess_voxels(fpath_obj, center=True, trim_z=0.875)
+    centered_voxels, _ = preprocess_voxels(fpath_obj, center=True, trim_z=0.6)
     centered_texture, _ = preprocess_pixels(fpath_obj)
 
     landmarks = compute_face_mesh(img)
@@ -70,7 +66,8 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     metric_idxs, norm_metric_points = find_metric_points(landmarks=landmarks)
 
     # read from static list
-    boundary_idx: List[int] = get_boundary_idx()
+    boundary_idx: List[int] = get_custom_boundary_idx()
+
     # bp = find_boundary_points(landmarks, boundary_idx)
     boundary_contour: List[Tuple[int]] = compute_boundary_edges(boundary=boundary_idx)
 
@@ -82,12 +79,12 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     )
 
     boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
-    # black = np.zeros(img.shape)
-    # black[boundary[:, 1], boundary[:, 0]] = color
-    # cv2.imwrite("black.png", black)
+    black = np.zeros(img.shape)
+    black[boundary[:, 1], boundary[:, 0]] = color
+    cv2.imwrite("black.png", black)
 
-    # fill = cv2.fillPoly(black, [boundary], color)
-    # cv2.imwrite("filled_black.png", fill)
+    fill = cv2.fillPoly(black, [boundary], color)
+    cv2.imwrite("filled_black.png", fill)
 
     # find the key points
     kp_img, kp_color = draw_points(img, norm_keypoints, landmark_spec=LANDMARK_SPEC)
@@ -101,8 +98,8 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     # cv2.imwrite("b.png", b)
 
     # QUCK CHECK
-    # cv2.imwrite("keypoint.png", kp_img)
-    # cv2.imwrite("boundary.png", annotated_img)
+    cv2.imwrite("keypoint.png", kp_img)
+    cv2.imwrite("boundary.png", annotated_img)
 
     # grab the key point indices
     kp_idx = get_keypoint_centroids(
@@ -118,7 +115,7 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     mask = build_mask_from_boundary(annotated_img, boundary)
 
     # write out mask to image
-    # cv2.imwrite("binary_mask.png", mask)
+    cv2.imwrite("binary_mask.png", mask)
 
     fpath_texture = fpath_img
     fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")
@@ -143,13 +140,13 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     for row, col in textures:
         texture_img[col, row] = MASK_COLOR
 
-    # cv2.imwrite("texture_image.png", texture_img)
+    cv2.imwrite("texture_image.png", texture_img)
 
     # now merge with the mask, divide by 255 to return to 0-255 normal values.
     constrained_face = (texture_img * mask) // 255
     cf = (img * mask) // 255
-    # cv2.imwrite("cf.png", cf)
-    # cv2.imwrite("constrained_face.png", constrained_face)
+    cv2.imwrite("cf.png", cf)
+    cv2.imwrite("constrained_face.png", constrained_face)
 
     things = []
     for idx, (row, col) in enumerate(textures):
@@ -158,7 +155,7 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
         if constrained_face[col, row][2] == 255:
             things.append(idx)
 
-    # cv2.imwrite("constrained_textures.png", constrained_face)
+    cv2.imwrite("constrained_textures.png", constrained_face)
     # ? keypoint_idxs = find_keypoint_indices(texture, kp_idx)
 
     # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt"

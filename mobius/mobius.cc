@@ -94,27 +94,52 @@ void write_vertices(string fname) {
     }
 }
 
+Complex run_mobius(Complex z, Complex z1, Complex z2, Complex z3, Complex w1, Complex w2, Complex w3) {
+    /*
+    (z, z1; z2, z3) = (w, w1; w2, w3)
+    ((z - z2) * (z1 - z3)) / ((z - z3) * (z1 - z2)) = ((w - w2) * (w1 - w3)) / ((w - w3) * (w1 - w2))
+    w = ((w2 * (w1 - w3) * (z - z3) * (z1 - z2) - w3 * (w1 - w2) * (z - z2) * (z1 - z3)) / ((z - z3) * (z1 - z2)))
+    */
+    Complex num = w2 * (w1 - w3) * (z - z3) * (z1 - z2) - w3 * (w1 - w2) * (z - z2) * (z1 - z3);
+    Complex den = (z - z3) * (z1 - z2);
+    if (z == z3) {
+        return w3;
+    }
+    else if (z == z2) {
+        return w2;
+    }
+    else if (z == z1) {
+        return w1;
+    }
+    else {
+        return  num / den;
+    }
+}
+
 Complex mobius_transform(Complex z, Complex origin, double theta) {
     Complex i(0, 1);
-    Complex z_ = exp(i*theta) * ((z - origin)/(1.0 - (conj(origin) * z)));
-    return z_;
+    Complex w = exp(i*theta) * ((z - origin)/(1.0 - (conj(origin) * z)));
+    return w;
 }
 
 void compute_mobius_transform(int nosetip_id, int left_eye_id, int right_eye_id) {
     printf("Setting constants for Möbius transform...\n");
     
-    Complex z1 = vertices[nosetip_id];
-    Complex z2 = vertices[left_eye_id];
-    Complex z3 = vertices[right_eye_id];
+    Complex z1 = vertices[left_eye_id];
+    Complex z2 = vertices[right_eye_id];
+    Complex z3 = vertices[nosetip_id];
+    Complex w1 = Complex(-0.5, 1.0) / (2 * sqrt(2));
+    Complex w2 = Complex(0.5, 1.0) / (2 * sqrt(2));
+    Complex w3 = Complex(0.0, 0.0);
 
-    Complex mb_le = (z2 - z1) / (1.0 - conj(z1) * z2);
-    Complex mb_re = (z3 - z1) / (1.0 - conj(z1) * z3);
+    Complex mb_le = (z1 - z3) / (1.0 - conj(z3) * z1);
+    Complex mb_re = (z2 - z3) / (1.0 - conj(z3) * z2);
 
     double theta = atan(imag(mb_re - mb_le)/real(mb_le - mb_re));
 
     for (int i = 0; i < vertices.size(); i++) {
         Complex z = vertices[i];
-        Complex w = mobius_transform(z, z1, theta);
+        Complex w = mobius_transform(z, z3, theta);
         vertices[i] = w;
     }
 }

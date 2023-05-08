@@ -1,6 +1,7 @@
 from cmath import atan, exp, phase, pi, rect, sqrt
 from pathlib import Path
 import sys
+from typing import List
 
 import numpy as np
 
@@ -67,22 +68,74 @@ def mobius(z: complex, origin: complex, theta: float):
     return z_
 
 
-def build_mobius_function(keypoints, textures):
-    z1 = complex(*tuple(textures[keypoints["nosetip"], :]))
-    z2 = complex(*tuple(textures[keypoints["left_eye"], :]))
-    z3 = complex(*tuple(textures[keypoints["right_eye"], :]))
+def run_mobius(
+    z: complex,
+    z1: complex,
+    z2: complex,
+    z3: complex,
+    w1: complex,
+    w2: complex,
+    w3: complex,
+):
+    """
+    (z, z1; z2, z3) = (w, w1; w2, w3)
+    ((z - z2) * (z1 - z3)) / ((z - z3) * (z1 - z2)) = ((w - w2) * (w1 - w3)) / ((w - w3) * (w1 - w2))
+    w = ((w2 * (w1 - w3) * (z - z3) * (z1 - z2) - w3 * (w1 - w2) * (z - z2) * (z1 - z3)) / ((z - z3) * (z1 - z2)))
+    """
+    num: complex = w2 * (w1 - w3) * (z - z3) * (z1 - z2) - w3 * (w1 - w2) * (z - z2) * (
+        z1 - z3
+    )
+    den: complex = (z - z3) * (z1 - z2)
+    w: complex
+    if z == z3:
+        w = w3
+    elif z == z2:
+        w = w2
+    elif z == z1:
+        w = w1
+    else:
+        w = num / den
+    return w
 
-    mb_le = (z2 - z1) / (1.0 - (z1.conjugate() * z2))
-    mb_re = (z3 - z1) / (1.0 - (z1.conjugate() * z3))
 
-    theta = atan((mb_re.imag - mb_le.imag) / (mb_le.real - mb_re.real))
-    theta = -principal_arg(z2 - z1)
-    ang = np.angle(z2 - z1 / (z3 - z1))
-    return z1, theta
+def run_mobius_function(keypoints, textures, vertices):
+    """
+    CONSTANT MAPPING POINTS
+    w1 = complex(-1, 1) / (2 * sqrt(2))
+    w2 = complex(+1, 1) / (2 * sqrt(2))
+    w3 = complex(0, 0)
+    """
+    z1 = complex(*tuple(textures[keypoints["left_eye"], :]))
+    z2 = complex(*tuple(textures[keypoints["right_eye"], :]))
+    z3 = complex(*tuple(textures[keypoints["nosetip"], :]))
+
+    w1 = complex(-1, 1) / (2 * sqrt(2))
+    w2 = complex(+1, 1) / (2 * sqrt(2))
+    w3 = complex(0, 0)
+
+    for i, t in enumerate(textures):
+        z = complex(t[0], t[1])
+        w = run_mobius(z, z1=z1, z2=z2, z3=z3, w1=w1, w2=w2, w3=w3)
+        print(f"z: {z}\tw: {w}")
+        textures[i][0] = w.real
+        textures[i][1] = w.imag
+        vertices[i][0] = w.real
+        vertices[i][1] = w.imag
+    return textures, vertices
 
 
-def t(z):
-    z - z3
+def write_object(vertices: np.ndarray, textures: np.ndarray, faces: List[str]):
+    with open("source.obj", "w") as s:
+        for v in vertices:
+            row = "v " + " ".join([str(x) for x in v]) + "\n"
+            s.write(row)
+
+        for vt in textures:
+            row = "vt " + " ".join([str(x) for x in vt]) + "\n"
+            s.write(row)
+
+        for f in faces:
+            s.write(f)
 
 
 if __name__ in "__main__":
@@ -93,15 +146,6 @@ if __name__ in "__main__":
     vert, text, face = read_obj(sys.argv[1])
     keypoints = read_keypoints(sys.argv[2])
 
-    origin, theta = build_mobius_function(keypoints, text)
-    z1 = complex(*tuple(text[keypoints["left_eye"]]))
-    z2 = complex(*tuple(text[keypoints["right_eye"]]))
-    z3 = complex(*tuple(text[keypoints["nosetip"]]))
+    text_, vert_ = run_mobius_function(keypoints, text, vert)
 
-    w1 = complex(-1, 1) / (2 * sqrt(2))
-    w2 = complex(+1, 1) / (2 * sqrt(2))
-    w3 = complex(0, 0)
-
-    print(f"{z1} -> {w1}\n{z2} -> {w2}\n{z3} -> {w3}")
-    for v in vert:
-        mobius(v[:3], origin, theta)
+    write_object(vert_, text_, face)

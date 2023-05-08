@@ -3,8 +3,9 @@ BUILD=0
 CLEAN=0
 SKIP_BD=0
 ZIPDATA=0
+PYENV=0
 
-while getopts 'bcd:sz' flag
+while getopts 'bcd:psz' flag
 do
     case "$flag" in
         b) 
@@ -15,6 +16,9 @@ do
             ;;
         d) 
             DIRPATH=$OPTARG
+            ;;
+        p)
+            PYENV=1
             ;;
         s)
             SKIP_BD=1

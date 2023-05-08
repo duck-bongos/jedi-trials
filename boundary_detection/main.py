@@ -23,10 +23,10 @@ if __name__ == "__main__":
     fpath_target_obj = Path(args.target_obj)
     keypoints_only: bool = args.skip_boundary
 
-    # cProfile.run(
-    #     "run_face_mesh_pipeline(fpath_img=fpath_source_img, fpath_obj=fpath_source_obj, display=False)",
-    #     "restats",
-    # )
+    """cProfile.run(
+        "run_face_mesh_pipeline(fpath_img=fpath_source_img, fpath_obj=fpath_source_obj)",
+        "restats",
+    )"""
     if keypoints_only:
         print("Running Keypoints only!")
         run_keypoints(fpath_img=fpath_source_img, fpath_obj=fpath_source_obj)
