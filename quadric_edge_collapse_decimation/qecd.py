@@ -67,16 +67,6 @@ def get_dirpath_files(dirpath: Path, fpath_obj: Path, dir: str):
 
 def extract_points(lines: List[str]):
     keypoints = {}
-    if not isinstance(dirpath_points, Path):
-        with open(get_point_file(fpath_obj, dir)) as kp:
-            lines = kp.readlines()
-
-    else:
-        with open(
-            get_dirpath_files(dirpath=dirpath_points, fpath_obj=fpath_obj, dir=dir)
-        ) as kp:
-            lines = kp.readlines()
-
     lines = [line.strip().split(" ") for line in lines]
     for l in lines:
         keypoints[l[0]] = np.array([float(i) for i in l[1:]])
