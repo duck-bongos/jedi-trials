@@ -4,7 +4,96 @@ import re
 from typing import Dict, List, Tuple, Union
 
 from box import Box
+import cv2
 import numpy as np
+
+
+def calculate_area(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray):
+    # Calculate the vectors between the points
+    v1 = p2 - p1
+    v2 = p3 - p1
+
+    # Calculate the cross product of the vectors
+    cross_product = np.cross(v1, v2)
+
+    # Calculate the magnitude of the cross product
+    magnitude = np.linalg.norm(cross_product)
+
+    # Divide the magnitude by 2 to get the area
+    area = magnitude / 2
+
+    return area
+
+
+def get_boundary_fpath(fname: Path, **kwargs) -> str:
+    extension = kwargs.get("extension", "")
+    fpath = fname.parent
+    new_path = fpath / "boundary" / fname.name
+
+    if extension != "":
+        if "." in extension:
+            new_path = new_path.with_suffix(extension)
+        else:
+            new_path = new_path.with_suffix(f".{extension}")
+
+    return new_path.as_posix()
+
+
+def get_new_fpath(fname: Path, new_dir: str):
+    extension = ".txt"
+    data_dir = fname.parent
+    path_ = data_dir / new_dir / fname.stem
+    new_path = path_.with_suffix(extension)
+    return new_path.as_posix()
+
+
+def get_keypoint_fpath(fname: Path) -> str:
+    extension = ".txt"
+    data_dir = fname.parent
+    path_ = data_dir / "keypoints" / fname.stem
+
+    new_path = path_.with_suffix(extension)
+
+    return new_path.as_posix()
+
+
+def center_face(img: np.ndarray) -> np.ndarray:
+    """Center the face"""
+    new_img = np.zeros(img.shape)
+    img_ = img.sum(axis=2)
+
+    # get dimensions
+    ylen, xlen, _ = img.shape
+
+    # midpoint
+    xmid = xlen // 2
+    ymid = ylen // 2
+
+    face = np.argwhere(img_ > 100)
+
+    # get ymin, ymax of face
+    ymin = face[:, 0].min()
+    ymax = face[:, 0].max()
+    y_center = ymin + ((ymax - ymin) // 2)
+
+    # get xmin, xmax of face
+    xmin = face[:, 1].min()
+    xmax = face[:, 1].max()
+    x_center = xmin + ((xmax - xmin) // 2)
+
+    # distance between image and face centers
+    x_shift = xmid - x_center
+    new_xmin = xmin + x_shift
+    new_xmax = xmax + x_shift
+
+    y_shift = ymid - y_center
+    new_ymin = ymin + y_shift
+    new_ymax = ymax + y_shift
+
+    # shift the image
+    new_img[new_ymin:new_ymax, new_xmin:new_xmax] = img[ymin:ymax, xmin:xmax]
+
+    return new_img
 
 
 def center_object(obj: np.ndarray):
@@ -34,74 +123,6 @@ def center_object(obj: np.ndarray):
 
     # works for pixels and voxels
     return np.hstack([centered_obj, obj[:, csize:]])
-
-
-def get_boundary_fpath(fname: Path, **kwargs) -> str:
-    extension = kwargs.get("extension", "")
-    fpath = fname.parent
-    new_path = fpath / "boundary" / fname.name
-
-    if extension != "":
-        if "." in extension:
-            new_path = new_path.with_suffix(extension)
-        else:
-            new_path = new_path.with_suffix(f".{extension}")
-
-    return new_path.as_posix()
-
-
-def get_new_fpath(fname: Path, new_dir: str):
-    extension = ".txt"
-    data_dir = fname.parent
-    path_ = data_dir / new_dir / fname.stem
-    new_path = path_.with_suffix(extension)
-    return new_path.as_posix()
-
-
-def parse_cli() -> ArgumentParser:
-    ap = ArgumentParser()
-    ap.add_argument(
-        "--image_path",
-        "-i",
-        dest="image",
-        default="../data/source.png",
-        required=True,
-    )
-    ap.add_argument(
-        "--object_path",
-        "-o",
-        dest="obj_path",
-        default="../data/source.obj",
-        required=True,
-    )
-    ap.add_argument(
-        "--boundary_path",
-        "-b",
-        dest="boundary_path",
-        required=True,
-    )
-    ap.add_argument(
-        "--chunk_path",
-        "-c",
-        dest="chunk_path",
-        required=False,
-    )
-    ap.add_argument(
-        "--debug",
-        "-d",
-        dest="debug",
-        action="store_true",
-    )
-    ap.add_argument(
-        "--skip_boundary",
-        "-k",
-        dest="skip_boundary",
-        action="store_true",
-    )
-    args = ap.parse_args()
-    args = Box(args.__dict__)
-
-    return args
 
 
 def preprocess_pixels(in_fpath: Path, center: bool = False) -> Tuple[np.ndarray, Path]:
@@ -193,6 +214,26 @@ def update_vertex_indices(face_string: str, mapping: Dict[int, int]) -> str:
         updated_idxs += str(mapping[idx]) + "/" + str(mapping[idx]) + " "
     updated_idxs = updated_idxs[:-1]
     return updated_idxs + "\n"
+
+
+def write_image(fpath: Path, img: np.ndarray, **kwargs) -> bool:
+    """Save image as a png using cv2.imwrite."""
+    # TODO: https://github.com/duck-bongos/jedi-trials/issues/1
+    d = {"suffix": "img", "extension": "png"}
+    d.update(kwargs)
+
+    fpath_img = get_boundary_fpath(fpath, **d)
+    return cv2.imwrite(fpath_img, img)
+
+
+def write_matrix(fpath: Path, matrix: np.ndarray, **kwargs) -> None:
+    """Save as a numpy file in the annotated directory."""
+    # np.save automatically adds a .npy path at the end, no extension needed
+    d = {"suffix": "matrix"}
+    d.update(kwargs)
+
+    fpath_matrix = get_boundary_fpath(fpath, **d)
+    np.save(fpath_matrix, matrix)
 
 
 def write_points(

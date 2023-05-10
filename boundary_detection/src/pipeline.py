@@ -1,56 +1,46 @@
-"""
-    Author: Dan Billmann
-    Date: 3/21/23
-
-    Module to work with mediapipe face meshes.
-"""
 from pathlib import Path
-from typing import List, Tuple
+from typing import Optional
 
 import cv2
 import mediapipe as mp
-from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
 import numpy as np
 
-
+from .boundary import get_boundary
 from .face_mesh import (
     add_point_voxels,
-    build_mask_from_boundary,
-    compute_boundary_edges,
     compute_face_mesh,
+    construct_mask,
     draw_points,
-    compute_mesh_and_boundary,
     find_keypoint_texture_ids,
     find_keypoints,
-    find_metric_points,
     find_metric_texture_idxs,
-    get_boundary_idx,
-    get_custom_boundary_idx,
-    get_boundary_from_annotation,
+    find_metric_points,
     get_keypoint_centroids,
-    get_second_boundary_idx,
-    get_third_boundary_idx,
-    get_forehead_chunk,
 )
 from .utils import (
     preprocess_pixels,
     preprocess_voxels,
     process_obj_file,
-    write_object,
     write_points,
+    write_object,
 )
 
+### CONSTANTS ###
 mp_drawing = mp.solutions.drawing_utils
-
-BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=3, circle_radius=2)
-# BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=3, circle_radius=2)
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_face_mesh = mp.solutions.face_mesh
 LANDMARK_SPEC = mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=1, circle_radius=2)
-# LANDMARK_SPEC = mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=5, circle_radius=5)
-# BGR - RED Mask
-MASK_COLOR = [0, 255, 255]
+MASK_COLOR = (0, 255, 255)
+#################
 
 
-def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
+def pipeline(
+    fpath_img: Path,
+    fpath_obj: Path,
+    fpath_boundary: Path,
+    fpath_chunk: Optional[Path] = None,
+    debug: bool = False,
+):
     # Convert the BGR image to RGB before processing?
     fpath_img_ = fpath_img.resolve().as_posix()
     img = cv2.imread(fpath_img_)
@@ -66,63 +56,25 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     norm_keypoints = find_keypoints(landmarks)
     metric_idxs, norm_metric_points = find_metric_points(landmarks=landmarks)
 
-    # read from static list
-    boundary_idx: List[int] = get_second_boundary_idx()
+    boundary: np.ndarray = get_boundary(fpath_boundary=fpath_boundary)
+    mask: np.ndarray = construct_mask(img.shape, boundary=boundary, color=MASK_COLOR)
 
-    chunk_idx: List[int] = get_forehead_chunk()
-    chunk_contour = compute_boundary_edges(boundary=chunk_idx)
-    ai, c = compute_mesh_and_boundary(
-        img, landmarks, connections=chunk_contour, boundary_spec=BOUNDARY_SPEC
-    )
+    if isinstance(fpath_chunk, Path):
+        chunk: np.ndarray = get_boundary(fpath_boundary=fpath_chunk)
 
-    # bp = find_boundary_points(landmarks, boundary_idx)
-    boundary_contour: List[Tuple[int]] = compute_boundary_edges(boundary=boundary_idx)
-
-    annotated_img, color = compute_mesh_and_boundary(
-        img,
-        landmarks,
-        connections=boundary_contour,
-        boundary_spec=BOUNDARY_SPEC,
-    )
-
-    boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
-    black = np.zeros(img.shape)
-    black[boundary[:, 1], boundary[:, 0]] = color
-    # cv2.imwrite("black.png", black)
-
-    mask = cv2.fillPoly(black, [boundary], color)
-    # cv2.imwrite("filled_black.png", mask)
-
-    # repeat for CHUNK
-    if "source" in fpath_img_:
-        chunk_idx: List[int] = get_forehead_chunk()
-        chunk_contour = compute_boundary_edges(boundary=chunk_idx)
-        ai, c = compute_mesh_and_boundary(
-            img, landmarks, connections=chunk_contour, boundary_spec=BOUNDARY_SPEC
-        )
-
-        chunk = get_boundary_from_annotation(ai, c, two_d_only=True)
-        b = np.zeros(img.shape)
-        b[chunk[:, 1], chunk[:, 0]] = c
-        cv2.imwrite("chunk_outline.png", b)
-
+        # remove a chunk of the mask
         mask = cv2.fillPoly(mask, [chunk], (0, 0, 0))
-        cv2.imwrite("filled_chunk.png", mask)
 
+    ################################
+    ### COMPUTE IMPORTANT POINTS ###
+    ################################
     # find the key points
     kp_img, kp_color = draw_points(img, norm_keypoints, landmark_spec=LANDMARK_SPEC)
 
-    # find the metric points
+    # find the metric point indices
     metric_img, metric_color = draw_points(
         img, norm_metric_points, landmark_spec=LANDMARK_SPEC
     )
-
-    # b, c = draw_points(img, bp, LANDMARK_SPEC)
-    # cv2.imwrite("b.png", b)
-
-    # QUCK CHECK
-    cv2.imwrite("keypoint.png", kp_img)
-    cv2.imwrite("boundary.png", annotated_img)
 
     # grab the key point indices
     kp_idx = get_keypoint_centroids(
@@ -133,13 +85,12 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     mt_idx = get_keypoint_centroids(
         metric_img, metric_color, k_size=len(norm_metric_points.landmark)
     )
+    ################################
+    ################################
 
-    # write out mask
-    # mask = build_mask_from_boundary(annotated_img, boundary)
-
-    # write out mask to image
-    # cv2.imwrite("binary_mask.png", mask)
-
+    ################################
+    ####### COMPUTE TEXTURES #######
+    ################################
     fpath_texture = fpath_img
     fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")
     texture_read = np.loadtxt(fpath_texture.resolve().as_posix())
@@ -154,6 +105,13 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
         metric_idxs, mt_idx, texture=textures, shape=img.shape
     )
 
+    kpv = add_point_voxels(keypoint_texture_ids, centered_voxels)
+    mpv = add_point_voxels(metric_point_texture_ids, centered_voxels)
+
+    # write out important points
+    write_points(fpath_img, kpv)
+    write_points(fpath_img, mpv, "metrics")
+
     # List of points of the form (y, x) & scale them to image size
     textures[:, 0] *= img.shape[1]
     textures[:, 1] *= img.shape[0]
@@ -162,37 +120,22 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     texture_img = np.zeros(img.shape)
     for row, col in textures:
         texture_img[col, row] = MASK_COLOR
+    ################################
+    ################################
 
-    cv2.imwrite("texture_image.png", texture_img)
-
-    # now merge with the mask, divide by 255 to return to 0-255 normal values.
+    ################################
     constrained_face = (texture_img * mask) // 255
-    cf = (img * mask) // 255
-    cv2.imwrite("cf.png", cf)
-    cv2.imwrite("constrained_face.png", constrained_face)
-
-    things = []
+    relevant_idxs = []
     for idx, (row, col) in enumerate(textures):
         # switch column and row
-        # if constrained face's R coordinate is red, append
+        # if constrained face's Red coordinate is 255, append
         if constrained_face[col, row][2] == 255:
-            things.append(idx)
+            relevant_idxs.append(idx)
 
-    cv2.imwrite("constrained_textures.png", constrained_face)
-    # ? keypoint_idxs = find_keypoint_indices(texture, kp_idx)
+    # convert to numpy
+    idxs = np.array(relevant_idxs)
 
-    # "C:\\Users\\dan\\Documents\\GitHub\\jedi-trials\\data\\tmp\\vertices3d.txt"
-    idxs = np.array(things)
-    # fpath_voxel = fpath_img
-    # fpath_voxel = fpath_voxel.with_name(f"{fpath_voxel.stem}_voxels.txt")
-    # voxel_read = np.loadtxt(fpath_voxel.resolve().as_posix())
-    # voxels = voxel_read.copy()
-
-    kpv = add_point_voxels(keypoint_texture_ids, centered_voxels)
-    mpv = add_point_voxels(metric_point_texture_ids, centered_voxels)
-    write_points(fpath_img, kpv)
-    write_points(fpath_img, mpv, "metrics")
-
+    # write output
     write_object(
         fpath_out=fpath_img,
         fpath_obj=fpath_obj,
@@ -201,6 +144,3 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
         vertices=centered_voxels,
         keypoint_idxs=kp_idx,
     )
-    #####################################
-
-    return

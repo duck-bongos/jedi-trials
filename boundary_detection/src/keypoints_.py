@@ -12,7 +12,7 @@ import mediapipe as mp
 import numpy as np
 
 
-from .face_mesh import (
+from .face_mesh_ import (
     add_point_voxels,
     build_mask_from_boundary,
     compute_boundary_edges,
@@ -27,7 +27,7 @@ from .face_mesh import (
     get_boundary_from_annotation,
     get_keypoint_centroids,
 )
-from .utils import (
+from .utils_ import (
     preprocess_pixels,
     preprocess_voxels,
     process_obj_file,
