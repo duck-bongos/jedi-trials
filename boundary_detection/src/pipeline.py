@@ -30,6 +30,7 @@ from .face_mesh import (
     get_keypoint_centroids,
     get_second_boundary_idx,
     get_third_boundary_idx,
+    get_forehead_chunk,
 )
 from .utils import (
     preprocess_pixels,
@@ -66,7 +67,13 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     metric_idxs, norm_metric_points = find_metric_points(landmarks=landmarks)
 
     # read from static list
-    boundary_idx: List[int] = get_custom_boundary_idx()
+    boundary_idx: List[int] = get_second_boundary_idx()
+
+    chunk_idx: List[int] = get_forehead_chunk()
+    chunk_contour = compute_boundary_edges(boundary=chunk_idx)
+    ai, c = compute_mesh_and_boundary(
+        img, landmarks, connections=chunk_contour, boundary_spec=BOUNDARY_SPEC
+    )
 
     # bp = find_boundary_points(landmarks, boundary_idx)
     boundary_contour: List[Tuple[int]] = compute_boundary_edges(boundary=boundary_idx)
@@ -81,10 +88,26 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     boundary = get_boundary_from_annotation(annotated_img, color, two_d_only=True)
     black = np.zeros(img.shape)
     black[boundary[:, 1], boundary[:, 0]] = color
-    cv2.imwrite("black.png", black)
+    # cv2.imwrite("black.png", black)
 
-    fill = cv2.fillPoly(black, [boundary], color)
-    cv2.imwrite("filled_black.png", fill)
+    mask = cv2.fillPoly(black, [boundary], color)
+    # cv2.imwrite("filled_black.png", mask)
+
+    # repeat for CHUNK
+    if "source" in fpath_img_:
+        chunk_idx: List[int] = get_forehead_chunk()
+        chunk_contour = compute_boundary_edges(boundary=chunk_idx)
+        ai, c = compute_mesh_and_boundary(
+            img, landmarks, connections=chunk_contour, boundary_spec=BOUNDARY_SPEC
+        )
+
+        chunk = get_boundary_from_annotation(ai, c, two_d_only=True)
+        b = np.zeros(img.shape)
+        b[chunk[:, 1], chunk[:, 0]] = c
+        cv2.imwrite("chunk_outline.png", b)
+
+        mask = cv2.fillPoly(mask, [chunk], (0, 0, 0))
+        cv2.imwrite("filled_chunk.png", mask)
 
     # find the key points
     kp_img, kp_color = draw_points(img, norm_keypoints, landmark_spec=LANDMARK_SPEC)
@@ -112,10 +135,10 @@ def run_face_mesh_pipeline(fpath_img: Path, fpath_obj: Path):
     )
 
     # write out mask
-    mask = build_mask_from_boundary(annotated_img, boundary)
+    # mask = build_mask_from_boundary(annotated_img, boundary)
 
     # write out mask to image
-    cv2.imwrite("binary_mask.png", mask)
+    # cv2.imwrite("binary_mask.png", mask)
 
     fpath_texture = fpath_img
     fpath_texture = fpath_texture.with_name(f"{fpath_img.stem}_texture.txt")

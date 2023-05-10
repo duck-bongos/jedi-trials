@@ -1,3 +1,0 @@
-nosetip 8820
-left_eye 4402
-right_eye 4645

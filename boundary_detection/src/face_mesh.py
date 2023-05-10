@@ -231,6 +231,13 @@ def get_boundary_idx():
     return boundary
 
 
+def get_forehead_chunk():
+    boundary = []
+    with open("inconsistent_boundaries/center_forehead.txt") as bound:
+        boundary = [int(x.strip()) for x in bound.readlines()]
+    return boundary
+
+
 def get_second_boundary_idx():
     boundary = []
     with open("mediapipe_constants/second.txt") as bound:

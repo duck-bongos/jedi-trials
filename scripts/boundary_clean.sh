@@ -13,5 +13,7 @@ then
 	fi
 fi
 
+rm boundary_detection/*.png
+
 
 
