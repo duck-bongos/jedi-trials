@@ -1,5 +1,0 @@
-Summary
--------------------------------------
-Total error: 431991
-Average error: 27.6634
-Max error: 92.1953

@@ -46,6 +46,7 @@ public:
 
 		for( size_t i = 0; i < pHs.size(); i ++ )
 		{
+			std::cout << i << std::endl;
 			m_halfedges.push_back( pHs[i] );
 		}
 	}

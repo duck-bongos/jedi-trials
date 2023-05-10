@@ -5,5 +5,7 @@ then
     echo -e "Built executable mobius/mobius."
 fi
 
-mobius/mobius data/mapped/source.obj data/keypoints/source.txt
+for f in data/mapped/*source.obj; do
+    fname=$(basename -- $f)
+    mobius/mobius data/mapped/source.obj data/keypoints/source.txt
 mobius/mobius data/mapped/target.obj data/keypoints/target.txt

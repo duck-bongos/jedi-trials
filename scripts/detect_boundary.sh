@@ -15,7 +15,7 @@ cd boundary_detection/
 # fi
 
 # for now, enforce the data directory is at the top level
-python main.py $1
+python main.py $1 -c
 
 echo -e "Completed boundary detection."
 

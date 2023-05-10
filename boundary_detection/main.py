@@ -13,8 +13,10 @@ from typing import List
 
 from src.boundary import Boundary, determine_boundary
 from src.keypoints import run_keypoints
-from src.pipeline import run_face_mesh_pipeline
-from src.utils import parse_cli
+from src.old_pipeline import run_face_mesh_pipeline
+
+# from src.pipeline import run_face_mesh_pipeline
+from src.old_utils import parse_cli
 
 
 if __name__ == "__main__":
@@ -24,7 +26,7 @@ if __name__ == "__main__":
     fpath_source_obj = Path(args.source_obj)
     fpath_target_obj = Path(args.target_obj)
     keypoints_only: bool = args.skip_boundary
-    inconsistent_boundary: bool = args.inconsistent
+    # inconsistent_boundary: bool = args.inconsistent
 
     if keypoints_only:
         print("Running Keypoints only!")
@@ -36,20 +38,16 @@ if __name__ == "__main__":
     else:
         print("Running boundary detection!")
         # will automatically run inconsistent boundaries
-        boundaries: List[Boundary] = determine_boundary(args, True)
+        # boundaries: List[Boundary] = determine_boundary(args, True)
         run_face_mesh_pipeline(
             fpath_img=fpath_source_img,
             fpath_obj=fpath_source_obj,
-            boundaries=boundaries,
-            debug=args.debug,
         )
 
-        boundaries: List[Boundary] = determine_boundary(args, False)
+        # boundaries: List[Boundary] = determine_boundary(args, False)
         run_face_mesh_pipeline(
             fpath_img=fpath_target_img,
             fpath_obj=fpath_target_obj,
-            boundaries=boundaries,
-            debug=args.debug,
         )
 
         print("Boundary detection complete.")

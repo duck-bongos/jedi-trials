@@ -11,6 +11,18 @@ then
 		rm -rf data/boundary/*.obj
 		echo "Removed .obj files from data/boundary."
 	fi
+
+	if [[ -d "data/metrics" ]]
+	then
+		echo "Removing metric files"
+		rm -rf data/metrics/*.txt
+	fi
+
+	if [[ -d "data/keypoints" ]]
+	then
+		echo "Removing Keypoints"
+		rm -rf data/keypoints/*.txt
+	fi
 fi
 
 

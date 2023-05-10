@@ -34,13 +34,23 @@ sleep 1
 cd HarmonicMap
 
 echo -e 'Mapping source...'
-bin/map ../data/collapsed/source.obj ../data/mapped/source.obj
-python3 hm.py ../data/mapped/source.obj
+for f in ../data/collapsed/*source.obj; do 
+    echo "Mapping $f"
+    bin/map $f ../data/mapped/$(basename -- $f) 
+done
+
+# bin/map ../data/collapsed/source.obj ../data/mapped/source.obj
+# python3 hm.py ../data/mapped/source.obj
 # bin/map ../../data/source/source.obj ../../data/optimized/mapped_source.obj
 
 echo -e 'Mapping target...'
-bin/map ../data/collapsed/target.obj ../data/mapped/target.obj
-python3 hm.py ../data/mapped/target.obj
+for f in ../data/collapsed/*target.obj; do
+    echo "Mapping $f"
+    bin/map $f ../data/mapped/$(basename -- $f)
+done
+
+# bin/map ../data/collapsed/target.obj ../data/mapped/target.obj
+# python3 hm.py ../data/mapped/target.obj
 # bin/map ../../data/target/target.obj ../../data/optimized/mapped_target.obj
 
 # GNU Parallel

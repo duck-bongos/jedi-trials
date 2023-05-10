@@ -136,7 +136,9 @@ def run_face_mesh_pipeline(
                 b = compute_boundary(img, boundary_idx=c.idxs, landmarks=landmarks)
                 # take the chunk out
                 chunk_removed = cv2.fillPoly(mask, [b], (0, 0, 0))
-                cv2.imwrite(f"{c.name}_chunk_removed.png", chunk_removed)
+                cv2.imwrite(
+                    f"{c.name}_chunk_removed.png", chunk_removed
+                ) if debug else print()
 
                 # cv2.imwrite("keypoint.png", kp_img) if debug else print()
                 # cv2.imwrite("boundary.png", annotated_img) if debug else print()
@@ -196,7 +198,7 @@ def run_face_mesh_pipeline(
             mpv = add_point_voxels(metric_point_texture_ids, centered_voxels)
 
             # change write-out name
-            fpath_img.with_name(f"{c.name}_{fpath_img.name}")
+            boundary_name = f"{name}_{c.name}" if name != c.name else c.name
 
             # write everything
             write_points(fpath_img, kpv)
@@ -207,7 +209,7 @@ def run_face_mesh_pipeline(
                 index=idxs,
                 texture=centered_texture,
                 vertices=centered_voxels,
-                boundary_name=c.name,
+                boundary_name=boundary_name,
             )
             #####################################
 

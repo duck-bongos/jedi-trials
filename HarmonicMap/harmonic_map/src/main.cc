@@ -328,6 +328,8 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    std::cout << "input files: " << argv[1] << " " << argv[2] << std::endl;
+
     std::string mesh_name(argv[1]);
 
     if (strutil::endsWith(mesh_name, ".m"))
@@ -343,6 +345,9 @@ int main(int argc, char *argv[])
         printf("Only file extensions '.m' and '.obj' supported.\n");
         return EXIT_FAILURE;
     }
+
+    std::cout << "Num vertices: "<< g_mesh.numVertices() << std::endl;
+    std::cout << "Num faces: "<< g_mesh.numFaces() << std::endl;
 
     // prepare the mesh for computation
     printf("Normalizing mesh...\n");
