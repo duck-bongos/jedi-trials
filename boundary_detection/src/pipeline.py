@@ -167,9 +167,10 @@ def run_face_mesh_pipeline(
             for row, col in textures:
                 texture_img[col, row] = MASK_COLOR
 
-            cv2.imwrite(
-                f"{c.name}_texture_image.png", texture_img
-            ) if debug else print()
+            if c.name == name:
+                cv2.imwrite(
+                    f"{c.name}_texture_image.png", texture_img
+                ) if debug else print()
 
             # now merge with the mask, divide by 255 to return to 0-255 normal values.
             if c.name != name:

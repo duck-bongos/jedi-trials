@@ -6,8 +6,12 @@
 #     python3 quadric_edge_collapse_decimation/qecd.py data/source.obj data/
 #     python3 quadric_edge_collapse_decimation/qecd.py data/target.obj data/
 # fi
-echo "QECD on source obj"
-python3 quadric_edge_collapse_decimation/qecd.py data/boundary/source.obj
+for f in data/boundary/*source.obj; do
+    echo "QECD on source obj $f"
+    python3 quadric_edge_collapse_decimation/qecd.py $f;
+done
 
-echo "QECD on target obj"
-python3 quadric_edge_collapse_decimation/qecd.py data/boundary/target.obj
+for f in data/boundary/*source.obj; do
+    echo "QECD on target obj $f"
+    python3 quadric_edge_collapse_decimation/qecd.py $f;
+done
