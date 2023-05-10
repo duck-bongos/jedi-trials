@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import cv2
 import mediapipe as mp
 from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmarkList
-from mediapipe.framework.formats.landmark_pb2 import NormalizedLandmark
+
 import numpy as np
 from scipy.cluster.vq import kmeans2
 from shapely import Polygon
@@ -67,15 +67,6 @@ def build_mask_from_boundary(
     return z
 
 
-def compute_boundary_edges(boundary) -> List[Tuple[int, int]]:
-    nl = []
-    nl.append((boundary[len(boundary) - 1], boundary[0]))
-    for i in range(0, len(boundary) - 1):
-        nl.append((boundary[i], boundary[i + 1]))
-
-    return nl
-
-
 def compute_face_mesh(img: np.ndarray):
     """Compute the face mesh using mediapipe.
 
@@ -113,38 +104,6 @@ def draw_points(
     return annotated_image, landmark_spec.color
 
 
-def compute_mesh_and_boundary(
-    img: np.ndarray,
-    landmarks: np.ndarray,
-    connections=None,
-    boundary_spec=None,
-) -> None:
-    """Captures then writes out both mesh and boundary to file."""
-    annotated_image = img.copy()
-    connections = (
-        mp_face_mesh.FACEMESH_TESSELATION if connections is None else connections
-    )
-
-    boundary_spec = (
-        mp_drawing_styles.get_default_face_mesh_tesselation_style()
-        if boundary_spec is None
-        else boundary_spec
-    )
-
-    mp_drawing.draw_landmarks(
-        image=annotated_image,
-        landmark_list=landmarks,
-        connections=connections,
-        landmark_drawing_spec=None,
-        connection_drawing_spec=boundary_spec,
-    )
-
-    # if not write_image(fpath, annotated_image, **{"prefix": "boundary"}):
-    #    print("WARNING: No image written.")
-
-    return annotated_image, boundary_spec.color
-
-
 def find_keypoints(landmarks) -> NormalizedLandmarkList:
     """Get the coordinates of the 3 key points.
 
@@ -169,88 +128,6 @@ def find_metric_points(landmarks) -> NormalizedLandmarkList:
     for i in idxs:
         marks.landmark.append(landmarks.landmark[i])
     return mp, marks
-
-
-def find_boundary_points(landmarks, idxs):
-    marks = NormalizedLandmarkList()
-    for k in idxs:
-        marks.landmark.append(landmarks.landmark[k])
-    return marks
-
-
-def get_boundary_from_annotation(
-    img: np.ndarray, boundary_color: Tuple[int, int, int], two_d_only: bool = False
-):
-    """Retrieve boundary
-
-    ex:
-        >>> boundary_spec
-        DrawingSpec(color=(48, 255, 255), thickness=1, circle_radius=2)
-        >>> boundary_spec.color
-        (48, 255, 255)
-        >>> boundary_color = boundary_spec.color
-        >>> np.where(img == boundary_color)
-        (array([ 289,  289,  ...53, 1535]), array([ 973,  973,  ...03,  809]), array([0, 1, 2, ..., 1, 2, 0]))
-        >>> annotated_image[tmp[0][0], tmp[1][0]]
-        array([ 48, 255, 255], dtype=uint8)
-
-    """
-    boundary_idx: Tuple[np.ndarray, np.ndarray] = np.where(
-        (img == boundary_color).all(axis=2)
-    )
-    boundary: np.ndarray = np.column_stack(boundary_idx)
-
-    if two_d_only:
-        # skip 3rd dimension
-        boundary = boundary[:, :2]
-
-        # deduplicate
-        boundary = np.unique(boundary, axis=0)
-
-    # try a reversal
-    boundary[:, [0, 1]] = boundary[:, [1, 0]]
-
-    # maybe this will help?
-    return boundary
-
-
-def get_boundary_idx():
-    """Get the boundary IDs.
-
-    I put the boundary IDs I found at the below URL into a hard-
-    coded text file for simpler reads.
-
-    https://github.com/tensorflow/
-    tfjs-models/blob/838611c02f51159afdd77469ce67f0e26b7bbb23/
-    face-landmarks-detection/src/mediapipe-facemesh/keypoints.ts
-    """
-    boundary = []
-    with open("mediapipe_constants/silhouette.txt") as bound:
-        boundary = [int(x.strip()) for x in bound.readlines()]
-
-    return boundary
-
-
-def get_second_boundary_idx():
-    boundary = []
-    with open("mediapipe_constants/second.txt") as bound:
-        boundary = [int(x.strip()) for x in bound.readlines()]
-    return boundary
-
-
-def get_third_boundary_idx():
-    boundary = []
-    with open("mediapipe_constants/third.txt") as bound:
-        boundary = [int(x.strip()) for x in bound.readlines()]
-    return boundary
-
-
-def get_custom_boundary_idx():
-    """A combination of second.txt and third.txt"""
-    boundary = []
-    with open("mediapipe_constants/custom.txt") as bound:
-        boundary = [int(x.strip()) for x in bound.readlines()]
-    return boundary
 
 
 def get_keypoint_idx() -> List[int]:
@@ -278,7 +155,7 @@ def get_keypoint_idx() -> List[int]:
 def get_metric_idx() -> Tuple[Dict[str, int], List[int]]:
     """"""
     lines = []
-    with open("mediapipe_constants/metrics.txt") as m:
+    with open("points/metrics.txt") as m:
         lines = m.readlines()
 
     points = {line.strip().split(" ")[0]: line.strip().split(" ")[1] for line in lines}
@@ -334,14 +211,16 @@ def find_metric_texture_idxs(
     mi[:, 0] = metric_idx[:, 0] / shape[0]
     mi[:, 1] = metric_idx[:, 1] / shape[1]
 
-    for i, (k, v) in enumerate(points.items()):
-        points[k] = {}
-        points[k]["mark"] = int(v)
-        points[k]["uv"] = mi[i]
-        d = np.linalg.norm(texture - mi[i], axis=1)
-        points[k]["idx"] = np.argmin(d)
+    p = {}
 
-    return points
+    for i, (k, v) in enumerate(points.items()):
+        p[k] = {}
+        p[k]["mark"] = int(v)
+        p[k]["uv"] = mi[i]
+        d = np.linalg.norm(texture - mi[i], axis=1)
+        p[k]["idx"] = np.argmin(d)
+
+    return p
 
 
 def get_color_indices_from_img(

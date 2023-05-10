@@ -28,10 +28,14 @@ def calculate_area(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray):
 
 
 def get_boundary_fpath(fname: Path, **kwargs) -> str:
-    extension = kwargs.get("extension", "")
+    name = fname.name
+    if kwargs.get("prefix"):
+        p = kwargs.get("prefix")
+        name = f"{p}_{name}"
     fpath = fname.parent
-    new_path = fpath / "boundary" / fname.name
+    new_path = fpath / "boundary" / name
 
+    extension = kwargs.get("extension", "")
     if extension != "":
         if "." in extension:
             new_path = new_path.with_suffix(extension)
@@ -95,6 +99,43 @@ def parse_cli() -> ArgumentParser:
         dest="skip_boundary",
         action="store_true",
     )
+    ap.add_argument(
+        "--inconsistent",
+        "-i",
+        dest="inconsistent",
+        action="store_true",
+    )
+    ap.add_argument(
+        "--inner",
+        "-r",
+        dest="inner",
+        action="store_true",
+    )
+    ap.add_argument(
+        "--middle",
+        "-m",
+        dest="middle",
+        action="store_true",
+    )
+    ap.add_argument(
+        "--outer",
+        "-o",
+        dest="outer",
+        action="store_true",
+    )
+    ap.add_argument(
+        "--custom",
+        "-c",
+        dest="custom",
+        action="store_true",
+    )
+    ap.add_argument(
+        "--debug",
+        "-d",
+        dest="debug",
+        action="store_true",
+    )
+
     args = ap.parse_args()
     args = Box(args.__dict__)
 
@@ -298,11 +339,10 @@ def write_object(
     index: np.ndarray,
     texture: np.ndarray,
     vertices: np.ndarray,
-    **kwargs,
+    boundary_name: str = "",
 ) -> None:
     """Create an .obj file using the texture and vertices data."""
-    d = {"prefix": "masked", "suffix": "object", "extension": "obj"}
-    d.update(kwargs)
+    d = {"prefix": boundary_name, "extension": "obj"}
 
     # map to translate unfiltered index values to filtered values
     idx_mapping = {}

@@ -38,7 +38,6 @@ bin/map ../data/collapsed/source.obj ../data/mapped/source.obj
 python3 hm.py ../data/mapped/source.obj
 # bin/map ../../data/source/source.obj ../../data/optimized/mapped_source.obj
 
-
 echo -e 'Mapping target...'
 bin/map ../data/collapsed/target.obj ../data/mapped/target.obj
 python3 hm.py ../data/mapped/target.obj

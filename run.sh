@@ -57,6 +57,12 @@ main () {
     then
         echo "Boundary detection" >> runtime.txt
         /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh -k
+        cp data/source.obj data/boundary/source.obj
+        cp data/target.obj data/boundary/target.obj
+        
+        echo "Trying to flatten, see if that makes a difference"
+        scripts/flatten.sh data/boundary/source.obj
+        scripts/flatten.sh data/boundary/target.obj
 
         # collapse the edges
         echo "Quadric Edge Collapse Decimation" >> runtime.txt
