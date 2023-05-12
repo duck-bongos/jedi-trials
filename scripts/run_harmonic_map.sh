@@ -32,22 +32,36 @@ fi
 
 sleep 1
 cd HarmonicMap
+touch erring_files.txt
+for s in ../data/collapsed/*source.obj; do
+    filename=$(basename -- "$s")
+    mname="../data/mapped/$filename"
+    echo "Running Harmonic Map on $s -> $mname"
+    gtimeout 60 bin/map $s $mname > tmp.txt
+    if [[ "$(tail -1 tmp.txt | cut -c-8)" == "Wrote to" ]]; then
+        python3 hm.py $mname
+    else
+        echo "$s\n" >> erring_files.txt
+    fi
+done
 
-echo -e 'Mapping source...'
-bin/map ../data/collapsed/source.obj ../data/mapped/source.obj
-python3 hm.py ../data/mapped/source.obj
-# bin/map ../../data/source/source.obj ../../data/optimized/mapped_source.obj
+for s in ../data/collapsed/*target.obj; do
+    filename=$(basename -- "$s")
+    mname="../data/mapped/$filename"
+    echo "Running Harmonic Map on $s -> $mname"
+    gtimeout 60 bin/map $s $mname > tmp.txt
+    if [[ "$(tail -1 tmp.txt | cut -c-8)" == "Wrote to" ]]; then
+        python3 hm.py $mname
+    else
+        echo "$s\n" >> erring_files.txt
+    fi
+done
+if [[ ! -s erring_files.txt ]]; then
+    mv erring_files.txt ../data/statistics
+fi
 
+rm tmp.txt
 
-echo -e 'Mapping target...'
-bin/map ../data/collapsed/target.obj ../data/mapped/target.obj
-python3 hm.py ../data/mapped/target.obj
-# bin/map ../../data/target/target.obj ../../data/optimized/mapped_target.obj
-
-# GNU Parallel
-# parallel --link bin/map ::: ../../data/annotated/source/masked_source_object.obj ../../data/source/source.obj ../../data/annotated/target/masked_target_object.obj ../../data/target/target.obj ::: ../../data/optimized/mapped_masked_source.obj ../../data/optimized/mapped_source.obj ../../data/optimized/mapped_masked_target.obj ../../data/optimized/mapped_target.obj
-
-# return to the top level directory
 cd ..
 
 echo "Returned to $PWD"

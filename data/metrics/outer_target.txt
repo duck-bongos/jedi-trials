@@ -1,0 +1,5 @@
+mid_top_lip 15105
+left_mouth_corner 2769
+left_cheek 9672
+right_mouth_corner 14033
+right_cheek 5108

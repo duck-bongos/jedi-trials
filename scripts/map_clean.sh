@@ -1,7 +1,7 @@
 # starting from top level directory
 
 # clean the data/optimized directory
-rm -rf data/mapped/*
+rm -rf data/mapped/*.obj
 
 # clean the build and bin
 cd HarmonicMap/

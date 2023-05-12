@@ -1,0 +1,2 @@
+right_forehead_custom_stats	right_cheek_custom_stats	left_forehead_custom_stats	left_cheek_custom_stats	chin_custom_stats	
+3.25019	3.89665	3.64622	3.66691	3.94235	

@@ -343,6 +343,7 @@ int main(int argc, char *argv[])
         printf("Only file extensions '.m' and '.obj' supported.\n");
         return EXIT_FAILURE;
     }
+    printf("Reading mesh%s\n", argv[1]);
 
     // prepare the mesh for computation
     printf("Normalizing mesh...\n");

@@ -1,0 +1,10 @@
+Name SourceId TargetId Error
+left_cheek 14390 9672 1.03846
+left_mouth_corner 7354 2769 0.318174
+mid_top_lip 19945 15105 0.522498
+right_cheek 9355 5108 1.0824
+right_mouth_corner 19020 14033 1.09485
+
+-------------------------------------
+Sum of Error
+4.05638

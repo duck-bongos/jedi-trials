@@ -60,3 +60,6 @@ optimization/HarmonicMap/data/*
 
 # In the event the temporary virtualenv "tmp" isn't clean
 tmp*
+
+# Ignore .mtl files
+*.mtl

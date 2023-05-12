@@ -5,7 +5,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 
-from .boundary import get_boundary
+from .boundary import Boundary, get_boundary
 from .face_mesh import (
     add_point_voxels,
     compute_face_mesh,
@@ -34,7 +34,7 @@ MASK_COLOR = (0, 255, 255)
 #################
 
 
-def pipeline(
+def run_pipeline(
     fpath_img: Path,
     fpath_obj: Path,
     fpath_boundary: Path,
@@ -56,14 +56,20 @@ def pipeline(
     norm_keypoints = find_keypoints(landmarks)
     metric_idxs, norm_metric_points = find_metric_points(landmarks=landmarks)
 
-    boundary: np.ndarray = get_boundary(fpath_boundary=fpath_boundary)
-    mask: np.ndarray = construct_mask(img.shape, boundary=boundary, color=MASK_COLOR)
+    boundary: Boundary = get_boundary(
+        fpath_boundary=fpath_boundary, fpath_img=fpath_img, landmarks=landmarks
+    )
+    mask: np.ndarray = construct_mask(
+        img.shape, boundary=boundary.idxs, color=MASK_COLOR
+    )
 
     if isinstance(fpath_chunk, Path):
-        chunk: np.ndarray = get_boundary(fpath_boundary=fpath_chunk)
+        chunk: Boundary = get_boundary(
+            fpath_boundary=fpath_chunk, fpath_img=fpath_img, landmarks=landmarks
+        )
 
         # remove a chunk of the mask
-        mask = cv2.fillPoly(mask, [chunk], (0, 0, 0))
+        mask = cv2.fillPoly(mask, [chunk.idxs], (0, 0, 0))
 
     ################################
     ### COMPUTE IMPORTANT POINTS ###
@@ -107,6 +113,11 @@ def pipeline(
 
     kpv = add_point_voxels(keypoint_texture_ids, centered_voxels)
     mpv = add_point_voxels(metric_point_texture_ids, centered_voxels)
+
+    # update the name
+    fpath_img = fpath_img.with_name(f"{boundary.name}_{fpath_img.name}")
+    if isinstance(fpath_chunk, Path):
+        fpath_img = fpath_img.with_name(f"{chunk.name}_{fpath_img.name}")
 
     # write out important points
     write_points(fpath_img, kpv)

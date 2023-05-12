@@ -63,7 +63,7 @@ def parse_cli() -> ArgumentParser:
     ap.add_argument(
         "--image_path",
         "-i",
-        dest="image",
+        dest="image_path",
         default="../data/source.png",
         required=True,
     )

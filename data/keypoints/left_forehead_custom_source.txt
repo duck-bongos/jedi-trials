@@ -1,0 +1,3 @@
+nosetip 13573
+left_eye 6800
+right_eye 6827

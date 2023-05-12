@@ -4,8 +4,10 @@ CLEAN=0
 SKIP_BD=0
 ZIPDATA=0
 PYENV=0
+METRICS=0
+STAGE="setup"
 
-while getopts 'bcd:psz' flag
+while getopts 'bcd:mpsz' flag
 do
     case "$flag" in
         b) 
@@ -16,6 +18,9 @@ do
             ;;
         d) 
             DIRPATH=$OPTARG
+            ;;
+        m)
+            METRICS=1
             ;;
         p)
             PYENV=1
@@ -49,40 +54,61 @@ data_copy() {
 }
 
 zip_data() {
-    zip -r $1/data.zip ./data/
+    zip -r $1/data.zip ./data/mapped ./data/transformed
+}
+
+zip_stats() {
+    zip -r $1/statistics.zip ./data/statistics/ runtime.txt
+}
+
+# prepend output
+p() { 
+    args=${@:2}; 
+    $@ | sed "s/^/[$args]\\n/"
+}
+
+prep_stage() {
+    $@ | sed "s/^/[$STAGE]\\n/" 
 }
 
 main () {
     if [[ $SKIP_BD == 1 ]]
     then
-        echo "Boundary detection" >> runtime.txt
-        /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh -k
+        STAGE="Boundary Detection"
+        prep_stage echo "Boundary detection" >> runtime.txt
+        prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh -k
 
         # collapse the edges
-        echo "Quadric Edge Collapse Decimation" >> runtime.txt
-        /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh 1
+        STAGE="QECD"
+        prep_stage echo "Quadric Edge Collapse Decimation" >> runtime.txt
+        prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh 1
 
     else
-        echo "Boundary detection" >> runtime.txt
-        /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh
+        STAGE="Boundary Detection"
+        prep_stage echo "Boundary detection" >> runtime.txt
+        prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/detect_boundary.sh
 
         # collapse the edges
+        STAGE="QECD"
         echo "Quadric Edge Collapse Decimation" >> runtime.txt
-        /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh
+        prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/qecd.sh
 
     fi
 
     # Compute the harmonic map
+    STAGE="Harmonic Mapping"
     echo "Harmonic Map" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt ./scripts/run_harmonic_map.sh
+    prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/run_harmonic_map.sh
 
     # compute the mobius transform
+    STAGE="Möbius Transform"
     echo "Möbius transform" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt ./scripts/mobius.sh
+    prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/mobius.sh
 
     # compute the non rigid registration
+    STAGE="Non-Rigid Registration"
     echo "Non-Rigid Registration" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt ./scripts/nrr.sh
+    prep_stage /usr/bin/time -a -h -o runtime.txt ./scripts/nrr.sh
 
     # detect the boundary
     echo -e "\n----------------------------------------"
@@ -107,25 +133,29 @@ touch runtime.txt
 # runs boundary_clean.sh, map_clean.sh
 if [[ $CLEAN == 1 && $BUILD == 1 ]]
 then
+    STAGE="Cleaning"
     echo -e "Cleaning directories first..."
     echo "Cleaning" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt  ./clean.sh -b
+    prep_stage /usr/bin/time -a -h -o runtime.txt ./clean.sh -b
 
+    STAGE="Building"
     echo -e "Building requirements before the run..."
     echo "Building" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt  ./scripts/build_all.sh
+    prep_stage /usr/bin/time -a -h -o runtime.txt  ./scripts/build_all.sh
 
 elif [[ $BUILD == 1 ]]
 then
+    STAGE="Building"
     echo -e "Building requirements before the run..."
     echo "Building" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt  ./scripts/build_all.sh
+    prep_stage /usr/bin/time -a -h -o runtime.txt  ./scripts/build_all.sh
 
 elif [[ $CLEAN == 1 ]]
 then
+    STAGE="Cleaning"
     echo -e "Cleaning directories first..."
     echo "Cleaning" >> runtime.txt
-    /usr/bin/time -a -h -o runtime.txt  ./clean.sh
+    prep_stage /usr/bin/time -a -h -o runtime.txt  ./clean.sh
 fi
 
 echo "Skip $SKIP_BD"
@@ -143,7 +173,16 @@ main
 echo 
 if [[ $ZIPDATA == 1 && ! -z "$DIRPATH" ]]
 then
+    STAGE="Zip Data"
     echo "Zipping data and sending to $DIRPATH ..."
-    zip_data "$DIRPATH"
+    prep_stage zip_data "$DIRPATH"
+    echo "Zipping complete!"
+fi
+
+if [[ $METRICS == 1 && ! -z "$DIRPATH" ]]
+then
+    STAGE="Zip Stats"
+    echo "Zipping statistics and sending to $DIRPATH ..."
+    prep_stage zip_stats "$DIRPATH"
     echo "Zipping complete!"
 fi

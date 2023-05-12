@@ -11,12 +11,13 @@
 using namespace std;
 
 struct Point {
-  double x, y;
-  Point(double x, double y) : x(x), y(y) {}
+  double x, y, z;
+  Point(double x, double y, double z) : x(x), y(y), z(z) {}
   double distanceTo(const Point& other) const {
     double dx = x - other.x;
     double dy = y - other.y;
-    return sqrt(dx*dx + dy*dy);
+    double dz = z - other.z;
+    return sqrt(dx*dx + dy*dy + dz*dz);
   }
 };
 
@@ -43,20 +44,20 @@ vector<Point> readPointCloud(const char* filename) {
         std::cerr << "Failed to open file" << std::endl;
     }
     
-    std::vector<Point> texcoords;
+    std::vector<Point> points;
     std::string line;
     
     while (std::getline(file, line)) {
-        if (line.substr(0, 3) == "vt ") {
-            std::stringstream ss(line.substr(3));
-            float u, v;
-            ss >> u >> v;
-            Point p = Point(u, v);
-            texcoords.push_back(p);
+        if (line.substr(0, 2) == "v ") {
+            std::stringstream ss(line.substr(2));
+            double u, v, z;
+            ss >> u >> v >> z;
+            Point p = Point(u, v, z );
+            points.push_back(p);
         }
     }
     file.close();
-    return texcoords;
+    return points;
 }
 
 int nearestNeighbor(const Point& query, const vector<Point>& points) {
@@ -88,8 +89,8 @@ string change_fpath(string fname) {
 }
 
 string change_mpath(string fname) {
-  string mname = replace_substr(fname, "transformed", "metrics");
-  mname = replace_substr(mname, "source.obj", "metrics.txt");
+  string mname = replace_substr(fname, "transformed", "statistics");
+  mname = replace_substr(mname, "source.obj", "stats.txt");
   return mname;
 }
 
@@ -148,12 +149,12 @@ void calculate_metrics(
 }
 
 int main(int argc, char** argv) {
-  if (argc != 3) {
-    cerr << "Usage: knn <source.obj> <target.obj>" << endl;
+  if (argc != 5) {
+    cerr << "Usage: knn <source.obj> <target.obj> <source_points.txt> <target_points.txt>" << endl;
     return 1;
   }
-  map<string, int> s_metrics = get_points("data/metrics/source.txt");
-  map<string, int> t_metrics = get_points("data/metrics/target.txt");
+  map<string, int> s_metrics = get_points(argv[3]);
+  map<string, int> t_metrics = get_points(argv[4]);
 
   // Read the source and target point clouds.
   vector<Point> sourcePoints = readPointCloud(argv[1]);
@@ -165,3 +166,10 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+
+/*
+breakpoint set --file nrr.cc --line 54
+breakpoint set --file nrr.cc --line 162
+breakpoint set --file nrr.cc --line 138
+
+*/

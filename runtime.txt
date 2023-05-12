@@ -1,12 +1,13 @@
 Cleaning
-	0.02s real		0.00s user		0.01s sys
+	0.53s real		0.01s user		0.11s sys
+[Boundary Detection]
 Boundary detection
-	13.45s real		11.27s user		1.44s sys
+	3m40.43s real		3m24.38s user		28.01s sys
 Quadric Edge Collapse Decimation
-	7.73s real		7.57s user		1.26s sys
+	2m4.98s real		1m57.75s user		21.13s sys
 Harmonic Map
-	38.44s real		37.37s user		1.07s sys
+	13m30.41s real		13m19.26s user		23.08s sys
 Möbius transform
-	1.15s real		0.61s user		0.40s sys
+	23.35s real		13.57s user		8.84s sys
 Non-Rigid Registration
-	3.29s real		2.72s user		0.10s sys
+	4m34.63s real		4m11.26s user		5.07s sys

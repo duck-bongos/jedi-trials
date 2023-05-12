@@ -102,7 +102,8 @@ def compute_mesh_and_boundary(
 
 def get_boundary_idxs(path: Path) -> List[int]:
     boundary = []
-
+    with open(path) as bound:
+        boundary = [int(x.strip()) for x in bound.readlines()]
     return boundary
 
 
