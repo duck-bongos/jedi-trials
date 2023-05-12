@@ -136,8 +136,8 @@ if __name__ in "__main__":
     )
     hm.tick_params(labelsize=18)
     plt.title("P-values by Inconsistent Boundary Method and Boundary", fontsize=30)
-    plt.xlabel("Boundary Designation", fontsize=25)
-    plt.ylabel("Inconsistent Boundary Method", fontsize=25)
+    plt.ylabel("Boundary Type", fontsize=25)
+    plt.xlabel("Inconsistent Boundary Method", fontsize=25)
     fig = hm.get_figure()
 
     fig.savefig("hm.png")

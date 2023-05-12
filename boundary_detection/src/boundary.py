@@ -15,7 +15,7 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
 ##################
 
-BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=1, circle_radius=2)
+BOUNDARY_SPEC = mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=3, circle_radius=2)
 
 
 class Boundary:

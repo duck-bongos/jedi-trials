@@ -68,12 +68,12 @@ def run_pipeline(
             fpath_boundary=fpath_chunk, fpath_img=fpath_img, landmarks=landmarks
         )
         black = np.zeros(img.shape)
-        black[chunk[:, 1], chunk[:, 0]] = MASK_COLOR
+        black[chunk.idxs[:, 1], chunk.idxs[:, 0]] = MASK_COLOR
         cv2.imwrite("chunk.png", black)
 
         # remove a chunk of the mask
         mask = cv2.fillPoly(mask, [chunk.idxs], (0, 0, 0))
-        cv2.imwrite("inconsistent_boundary.png", black)
+        cv2.imwrite("inconsistent_boundary.png", mask)
 
     ################################
     ### COMPUTE IMPORTANT POINTS ###
